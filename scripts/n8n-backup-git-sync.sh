@@ -5,6 +5,14 @@ REPO_DIR="/home/yzee/repos/homelab"
 DATE_STR=$(date +%F)
 EXPORT_DIR="${REPO_DIR}/n8n-workflows/active"
 
+# Load publication-only values from an ignored local file when present.
+if [[ -f "${REPO_DIR}/.public-export.env" ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source "${REPO_DIR}/.public-export.env"
+  set +a
+fi
+
 echo "Starting n8n workflow export backup..."
 
 # Ensure we are in the repo directory
