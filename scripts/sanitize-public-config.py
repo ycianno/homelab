@@ -2,6 +2,7 @@
 """Replace local runtime values with safe examples before public publication."""
 
 import os
+import re
 from pathlib import Path
 
 
@@ -24,6 +25,7 @@ ENV_EXAMPLE_VALUES = {
     "LOGFLARE_PUBLIC_ACCESS_TOKEN": "generate-a-local-public-access-token",
     "LOGFLARE_PRIVATE_ACCESS_TOKEN": "generate-a-local-private-access-token",
 }
+WEBHOOK_SIGNING_SECRET = re.compile(r"whsec_[A-Za-z0-9_-]+")
 
 
 def sanitize_env_example(path: Path) -> int:
@@ -71,15 +73,37 @@ def replace_private_domain(root: Path) -> int:
     return changes
 
 
+def replace_webhook_secret_examples(root: Path) -> int:
+    changes = 0
+    for path in root.rglob("*"):
+        if not path.is_file() or ".git" in path.parts:
+            continue
+        if path.name == ".env" or path.name.endswith(".env"):
+            continue
+        try:
+            content = path.read_text(encoding="utf-8")
+        except (UnicodeDecodeError, OSError):
+            continue
+        replacement = WEBHOOK_SIGNING_SECRET.sub(
+            "webhook-signing-secret-placeholder", content
+        )
+        if replacement != content:
+            path.write_text(replacement, encoding="utf-8")
+            changes += 1
+    return changes
+
+
 def main() -> None:
     root = Path(os.environ.get("PUBLIC_REPO_ROOT", ".")).resolve()
     env_changes = sanitize_env_example(
         root / "docker/colmado-db/supabase/.env.example"
     )
     domain_changes = replace_private_domain(root)
+    webhook_changes = replace_webhook_secret_examples(root)
     print(
         f"Sanitized {env_changes} example values and "
-        f"{domain_changes} files containing the private domain"
+        f"{domain_changes} files containing the private domain; "
+        f"removed webhook-secret patterns from {webhook_changes} files"
     )
 
 
