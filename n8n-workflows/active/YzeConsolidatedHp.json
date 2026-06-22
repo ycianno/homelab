@@ -1,0 +1,391 @@
+{
+  "updatedAt": "2026-06-22T03:28:14.922Z",
+  "createdAt": "2026-06-14T21:25:22.916Z",
+  "id": "YzeConsolidatedHp",
+  "name": "Daily Homelab Consolidated Report",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "schedule-trigger-id",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  { json: { name: \"Homepage\", url: \"http://10.0.0.67:3000\" } },\n  { json: { name: \"Uptime Kuma\", url: \"http://10.0.0.67:3001\" } },\n  { json: { name: \"n8n\", url: \"http://10.0.0.67:5678\" } },\n  { json: { name: \"Portainer\", url: \"https://10.0.0.67:9443\" } },\n  { json: { name: \"Forgejo\", url: \"http://10.0.0.67:3002\" } },\n  { json: { name: \"Semaphore\", url: \"http://10.0.0.67:3005\" } },\n  { json: { name: \"Nginx Proxy Manager\", url: \"http://10.0.0.67:81\" } },\n  { json: { name: \"Life Control Center\", url: \"http://10.0.0.67:3007\" } },\n  { json: { name: \"Nextcloud\", url: \"http://10.0.0.33:8081\" } },\n  { json: { name: \"Dozzle\", url: \"http://10.0.0.33:8088\" } },\n  { json: { name: \"Proxmox VE\", url: \"https://10.0.0.167:8006\" } },\n  { json: { name: \"Pi-hole\", url: \"http://10.0.0.20/admin/\" } },\n  { json: { name: \"Netdata automation-01\", url: \"http://10.0.0.67:19999\" } },\n  { json: { name: \"Netdata docker-01\", url: \"http://10.0.0.33:19999\" } },\n  { json: { name: \"Supabase Studio\", url: \"http://10.0.0.35:8000\" } }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        200,
+        -150
+      ],
+      "id": "service-list-id",
+      "name": "Service List"
+    },
+    {
+      "parameters": {
+        "url": "={{$json.url}}",
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        400,
+        -150
+      ],
+      "id": "http-request-id",
+      "name": "HTTP Request",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const serviceItems = $('Service List').all();\nconst resultItems = items;\nconst results = [];\nlet allOk = true;\n\nfor (let i = 0; i < serviceItems.length; i++) {\n  const service = serviceItems[i].json;\n  const result = resultItems[i]?.json || {};\n  \n  const isDown = result.error !== undefined && result.error !== null || result.statusCode !== 200 && result.statusCode !== 302 && result.statusCode !== 204 && result.statusCode !== 301;\n  const errorMsg = isDown ? (result.error?.message || result.error || `HTTP ${result.statusCode || 'Failed'}`) : null;\n  \n  if (isDown) allOk = false;\n  \n  results.push({\n    name: service.name,\n    url: service.url,\n    status: isDown ? \"DOWN\" : \"ONLINE\",\n    error: errorMsg\n  });\n}\n\nreturn [{\n  json: {\n    services: results,\n    all_ok: allOk\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        600,
+        -150
+      ],
+      "id": "aggregate-health-check-id",
+      "name": "Aggregate Health Check"
+    },
+    {
+      "parameters": {
+        "command": "echo '=== DOCKER STATUS ==='\ndocker ps --format \"automation-01|{{.Names}}|{{.Status}}\" || true\nssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 10.0.0.33 'docker ps --format \"docker-01|{{.Names}}|{{.Status}}\"' || echo \"docker-01|OFFLINE\"\nssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 10.0.0.35 'docker ps --format \"colmado-db|{{.Names}}|{{.Status}}\"' || echo \"colmado-db|OFFLINE\"\necho '=== DISK USAGE ==='\necho '=== automation-01 ==='\ndf -h /\necho '=== docker-01 ==='\nssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 10.0.0.33 'df -h /' || echo 'OFFLINE'\necho '=== colmado-db ==='\nssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 10.0.0.35 'df -h /' || echo 'OFFLINE'"
+      },
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        800,
+        100
+      ],
+      "id": "ssh-host-checks-id",
+      "name": "SSH: Host Checks",
+      "credentials": {
+        "sshPassword": {
+          "id": "GW8PIlItkey26oPL",
+          "name": "automation-01"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const stdout = items[0].json.stdout || \"\";\nconst lines = stdout.split(\"\\n\");\n\nconst expectedContainers = {\n  \"automation-01\": [\n    \"netdata\",\n    \"portainer\",\n    \"uptime-kuma\",\n    \"homepage\",\n    \"watchtower\",\n    \"nginx-proxy-manager\",\n    \"n8n\",\n    \"life-control-center\",\n    \"semaphore\",\n    \"forgejo\"\n  ],\n  \"docker-01\": [\n    \"netdata\",\n    \"portainer_agent\",\n    \"dozzle\",\n    \"watchtower\",\n    \"cloudflared\",\n    \"nextcloud-app\",\n    \"nextcloud-redis\",\n    \"nextcloud-db\"\n  ],\n  \"colmado-db\": [\n    \"supabase-db\",\n    \"supabase-storage\",\n    \"supabase-meta\",\n    \"supabase-studio\",\n    \"supabase-pooler\",\n    \"realtime-dev.supabase-realtime\",\n    \"supabase-auth\",\n    \"supabase-edge-functions\",\n    \"supabase-kong\",\n    \"supabase-rest\",\n    \"supabase-analytics\",\n    \"supabase-vector\",\n    \"supabase-imgproxy\"\n  ]\n};\n\nconst running = {\n  \"automation-01\": {},\n  \"docker-01\": {},\n  \"colmado-db\": {}\n};\n\nconst hostOffline = {\n  \"automation-01\": false,\n  \"docker-01\": false,\n  \"colmado-db\": false\n};\n\nconst diskUsage = {\n  \"automation-01\": null,\n  \"docker-01\": null,\n  \"colmado-db\": null\n};\n\nlet parsingSection = \"\";\nlet currentDiskHost = \"\";\n\nfor (const rawLine of lines) {\n  const line = rawLine.trim();\n  if (!line) continue;\n  \n  if (line.includes(\"=== DOCKER STATUS ===\")) {\n    parsingSection = \"DOCKER\";\n    continue;\n  }\n  if (line.includes(\"=== DISK USAGE ===\")) {\n    parsingSection = \"DISK\";\n    continue;\n  }\n  \n  if (parsingSection === \"DOCKER\") {\n    const parts = line.split(\"|\");\n    if (parts.length >= 2) {\n      const host = parts[0].trim();\n      const containerName = parts[1].trim();\n      if (containerName === \"OFFLINE\") {\n        hostOffline[host] = true;\n      } else if (parts.length >= 3) {\n        const status = parts[2].trim();\n        running[host][containerName] = status;\n      }\n    }\n  } else if (parsingSection === \"DISK\") {\n    if (line.startsWith(\"=== \") && line.endsWith(\" ===\")) {\n      currentDiskHost = line.replace(/===/g, \"\").trim();\n      continue;\n    }\n    \n    if (currentDiskHost) {\n      if (line === \"OFFLINE\") {\n        diskUsage[currentDiskHost] = \"OFFLINE\";\n      } else {\n        const parts = line.split(/\\s+/);\n        if (parts.length >= 6 && parts[5] === \"/\") {\n          diskUsage[currentDiskHost] = {\n            size: parts[1],\n            used: parts[2],\n            available: parts[3],\n            usage: parts[4]\n          };\n        }\n      }\n    }\n  }\n}\n\nconst containersSummary = {};\nlet allContainersOk = true;\n\nfor (const host of [\"automation-01\", \"docker-01\", \"colmado-db\"]) {\n  if (hostOffline[host]) {\n    containersSummary[host] = { status: \"OFFLINE\", all_ok: false };\n    allContainersOk = false;\n    continue;\n  }\n  \n  const expected = expectedContainers[host];\n  const active = running[host];\n  const details = [];\n  let hostOk = true;\n  \n  for (const name of expected) {\n    if (active[name]) {\n      details.push({ name, status: \"RUNNING\", details: active[name] });\n    } else {\n      details.push({ name, status: \"MISSING\" });\n      hostOk = false;\n      allContainersOk = false;\n    }\n  }\n  \n  containersSummary[host] = {\n    status: hostOk ? \"ALL_OK\" : \"MISSING_CONTAINERS\",\n    all_ok: hostOk,\n    details\n  };\n}\n\nreturn [{  json: {\n    containers: containersSummary,\n    all_containers_ok: allContainersOk,\n    disk_usage: diskUsage\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        100
+      ],
+      "id": "aggregate-host-checks-id",
+      "name": "Aggregate Host Checks"
+    },
+    {
+      "parameters": {
+        "command": "DATA_BACKUP=$(ls -1t /opt/backups/nextcloud/data/nextcloud-data-*.tar.gz 2>/dev/null | head -1); DB_BACKUP=$(ls -1t /opt/backups/nextcloud/db/nextcloud-db-*.sql.gz 2>/dev/null | head -1); HTML_BACKUP=$(ls -1t /opt/backups/nextcloud/html/nextcloud-html-*.tar.gz 2>/dev/null | head -1); printf \"HOST=%s\\n\" \"$(hostname)\"; printf \"DATE=%s\\n\" \"$(date '+%Y-%m-%d %H:%M:%S')\"; printf \"DATA_BACKUP=%s\\n\" \"$DATA_BACKUP\"; printf \"DB_BACKUP=%s\\n\" \"$DB_BACKUP\"; printf \"HTML_BACKUP=%s\\n\" \"$HTML_BACKUP\"; printf \"DATA_SIZE=%s\\n\" \"$(ls -lh \"$DATA_BACKUP\" 2>/dev/null | awk '{print $5}')\"; printf \"DB_SIZE=%s\\n\" \"$(ls -lh \"$DB_BACKUP\" 2>/dev/null | awk '{print $5}')\"; printf \"HTML_SIZE=%s\\n\" \"$(ls -lh \"$HTML_BACKUP\" 2>/dev/null | awk '{print $5}')\"; printf \"SUCCESS_LOG=%s\\n\" \"$(tail -50 /var/log/nextcloud-backup.log 2>/dev/null | grep -c 'Nextcloud backup completed successfully')\""
+      },
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        200
+      ],
+      "id": "ssh-nextcloud-backup-id",
+      "name": "SSH: Nextcloud Backup",
+      "credentials": {
+        "sshPassword": {
+          "id": "bynhm7FCsOYKpzkI",
+          "name": "docker-01"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const stdout = items[0].json.stdout || \"\";\nconst data = {};\nfor (const line of stdout.split(\"\\n\")) {\n  const index = line.indexOf(\"=\");\n  if (index === -1) continue;\n  const key = line.slice(0, index).trim();\n  const value = line.slice(index + 1).trim();\n  data[key] = value;\n}\n\nconst hasDataBackup = Boolean(data.DATA_BACKUP);\nconst hasDbBackup = Boolean(data.DB_BACKUP);\nconst hasHtmlBackup = Boolean(data.HTML_BACKUP);\nconst successLog = Number(data.SUCCESS_LOG || 0) > 0;\n\nconst allGood = hasDataBackup && hasDbBackup && hasHtmlBackup && successLog;\n\nreturn [{\n  json: {\n    host: data.HOST || \"docker-01\",\n    date: data.DATE,\n    backup_ok: allGood,\n    details: {\n      data: { file: data.DATA_BACKUP, size: data.DATA_SIZE },\n      db: { file: data.DB_BACKUP, size: data.DB_SIZE },\n      html: { file: data.HTML_BACKUP, size: data.HTML_SIZE },\n      success_message_found: successLog\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1400,
+        200
+      ],
+      "id": "aggregate-nextcloud-backup-id",
+      "name": "Aggregate Nextcloud Backup"
+    },
+    {
+      "parameters": {
+        "command": "BACKUP_DIR=\"/mnt/usb-drive/proxmox-backups/dump\"; LATEST_BACKUP=$(find \"$BACKUP_DIR\" -type f \\( -name '*.vma.zst' -o -name '*.vma.gz' \\) -printf '%T@ %p\\n' 2>/dev/null | sort -nr | head -1 | cut -d' ' -f2-); LATEST_BACKUP_TIME=$(find \"$BACKUP_DIR\" -type f \\( -name '*.vma.zst' -o -name '*.vma.gz' \\) -printf '%TY-%Tm-%Td %TH:%TM %p\\n' 2>/dev/null | sort -r | head -1); printf \"HOST=%s\\n\" \"$(hostname)\"; printf \"DATE=%s\\n\" \"$(date '+%Y-%m-%d %H:%M:%S')\"; printf \"USB_MOUNT=%s\\n\" \"$(findmnt -n /mnt/usb-drive >/dev/null && echo 1 || echo 0)\"; printf \"USB_DISK=%s\\n\" \"$(df -h /mnt/usb-drive 2>/dev/null | awk 'NR==2 {print $2,$3,$4,$5}')\"; printf \"LATEST_BACKUP=%s\\n\" \"$LATEST_BACKUP\"; printf \"LATEST_BACKUP_TIME=%s\\n\" \"$LATEST_BACKUP_TIME\"; printf \"BACKUP_COUNT_24H=%s\\n\" \"$(find \"$BACKUP_DIR\" -type f \\( -name '*.vma.zst' -o -name '*.vma.gz' \\) -mtime -1 2>/dev/null | wc -l)\"; printf \"TOTAL_BACKUPS=%s\\n\" \"$(find \"$BACKUP_DIR\" -type f \\( -name '*.vma.zst' -o -name '*.vma.gz' \\) 2>/dev/null | wc -l)\""
+      },
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        300
+      ],
+      "id": "ssh-proxmox-backup-id",
+      "name": "SSH: Proxmox Backup",
+      "credentials": {
+        "sshPassword": {
+          "id": "crAnE4D9LJFibYL6",
+          "name": "proxmox"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const stdout = items[0].json.stdout || \"\";\nconst data = {};\nfor (const line of stdout.split(\"\\n\")) {\n  const index = line.indexOf(\"=\");\n  if (index === -1) continue;\n  const key = line.slice(0, index).trim();\n  const value = line.slice(index + 1).trim();\n  data[key] = value;\n}\n\nconst usbMounted = Number(data.USB_MOUNT || 0) > 0;\nconst hasLatestBackup = Boolean(data.LATEST_BACKUP);\nconst backupsLast24h = Number(data.BACKUP_COUNT_24H || 0);\n\nconst backupOk = usbMounted && hasLatestBackup && backupsLast24h > 0;\n\nreturn [{\n  json: {\n    host: data.HOST || \"proxmox\",\n    date: data.DATE,\n    usb_mounted: usbMounted,\n    backup_ok: backupOk,\n    backups_last_24h: backupsLast24h,\n    total_backups: Number(data.TOTAL_BACKUPS || 0),\n    latest_backup: data.LATEST_BACKUP,\n    latest_backup_time: data.LATEST_BACKUP_TIME,\n    usb_usage: data.USB_DISK\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1800,
+        300
+      ],
+      "id": "aggregate-proxmox-backup-id",
+      "name": "Aggregate Proxmox Backup"
+    },
+    {
+      "parameters": {
+        "jsCode": "const services = $('Aggregate Health Check').item.json;\nconst hosts = $('Aggregate Host Checks').item.json;\nconst nextcloudBackup = $('Aggregate Nextcloud Backup').item.json;\nconst proxmoxBackup = $('Aggregate Proxmox Backup').item.json;\n\nconst warningThreshold = 80;\nconst criticalThreshold = 90;\n\nlet highestStatus = \"Healthy\";\nlet embedColor = 3066993;\n\nlet downServices = [];\nfor (const s of services.services) {\n  if (s.status === \"DOWN\") {\n    downServices.push(s.name);\n    highestStatus = \"Critical\";\n    embedColor = 15158332;\n  }\n}\n\nlet missingContainers = [];\nfor (const [host, info] of Object.entries(hosts.containers)) {\n  if (info.status === \"OFFLINE\") {\n    missingContainers.push(`${host} is OFFLINE`);\n    highestStatus = \"Critical\";\n    embedColor = 15158332;\n  } else if (!info.all_ok) {\n    const missing = info.details.filter(d => d.status === \"MISSING\").map(d => d.name);\n    missingContainers.push(`${host}: missing ${missing.join(\", \")}`);\n    highestStatus = \"Critical\";\n    embedColor = 15158332;\n  }\n}\n\nlet diskWarnings = [];\nfor (const [host, disk] of Object.entries(hosts.disk_usage)) {\n  if (disk === \"OFFLINE\") {\n    diskWarnings.push(`${host} disk check: OFFLINE`);\n    highestStatus = \"Critical\";\n    embedColor = 15158332;\n  } else if (disk && disk.usage) {\n    const usageVal = parseInt(disk.usage.replace(\"%\", \"\"), 10);\n    if (usageVal >= criticalThreshold) {\n      diskWarnings.push(`${host} disk is critically full: ${disk.usage} (${disk.used} / ${disk.size})`);\n      highestStatus = \"Critical\";\n      embedColor = 15158332;\n    } else if (usageVal >= warningThreshold) {\n      diskWarnings.push(`${host} disk is nearly full: ${disk.usage} (${disk.used} / ${disk.size})`);\n      if (highestStatus !== \"Critical\") {\n        highestStatus = \"Warning\";\n        embedColor = 16776960;\n      }\n    }\n  }\n}\n\nlet backupStatusText = \"\";\nif (nextcloudBackup.backup_ok) {\n  backupStatusText += `✅ **Nextcloud Backup**: Success (DB: ${nextcloudBackup.details.db.size}, Data: ${nextcloudBackup.details.data.size})`;\n} else {\n  backupStatusText += `🚨 **Nextcloud Backup**: FAILED / Missing components`;\n  highestStatus = \"Critical\";\n  embedColor = 15158332;\n}\n\nbackupStatusText += \"\\n\";\nif (proxmoxBackup.usb_mounted) {\n  if (proxmoxBackup.backup_ok) {\n    backupStatusText += `✅ **Proxmox Backup**: Success (${proxmoxBackup.backups_last_24h} backups in 24h, ${proxmoxBackup.total_backups} total)`;\n  } else {\n    backupStatusText += `🚨 **Proxmox Backup**: FAILED / No backup in last 24h`;\n    highestStatus = \"Critical\";\n    embedColor = 15158332;\n  }\n} else {\n  backupStatusText += `⚠️ **Proxmox Backup**: INACTIVE (USB Drive not mounted)`;\n  if (highestStatus === \"Healthy\") {\n    highestStatus = \"Warning\";\n    embedColor = 16776960;\n  }\n}\n\nconst lines = [];\nlines.push(`🕒 **Time**: ${new Date().toLocaleString(\"en-US\", { timeZone: \"America/Santo_Domingo\" })}`);\nlines.push(\"\");\n\nlines.push(\"🌐 **Services (Web URLs)**\");\nif (services.all_ok) {\n  lines.push(\"✅ All web services are online and responding.\");\n} else {\n  lines.push(`🚨 **Down**: ${downServices.join(\", \")}`);\n}\nlines.push(\"\");\n\nlines.push(\"🐳 **Docker Containers**\");\nif (hosts.all_containers_ok) {\n  lines.push(\"✅ All expected containers are running healthy.\");\n} else {\n  lines.push(`🚨 **Missing**: ${missingContainers.join(\"; \")}`);\n}\nlines.push(\"\");\n\nlines.push(\"💾 **Disk Usage**\");\nfor (const [host, disk] of Object.entries(hosts.disk_usage)) {\n  if (disk === \"OFFLINE\") {\n    lines.push(`🚨 **${host}**: OFFLINE`);\n  } else if (disk && disk.usage) {\n    lines.push(`- **${host}**: ${disk.usage} (${disk.used} / ${disk.size}) — ${disk.available} avail`);\n  } else {\n    lines.push(`🚨 **${host}**: Unknown status`);\n  }\n}\nif (diskWarnings.length > 0) {\n  lines.push(`\\n⚠️ **Warnings**: ${diskWarnings.join(\"; \")}`);\n}\nlines.push(\"\");\n\nlines.push(\"🗄️ **Backups Status**\");\nlines.push(backupStatusText);\n\nlet embedTitle = \"\";\nif (highestStatus === \"Healthy\") {\n  embedTitle = \"🟢 YZEE Labs - Daily Health Report (All Systems Nominal)\";\n} else if (highestStatus === \"Warning\") {\n  embedTitle = \"⚠️ YZEE Labs - Daily Health Report (System Warning)\";\n} else {\n  embedTitle = \"🔴 YZEE Labs - Daily Health Report (Attention Required)\";\n}\n\nreturn [{\n  json: {\n    username: \"Homelab Reporter\",\n    embeds: [{\n      title: embedTitle,\n      description: lines.join(\"\\n\"),\n      color: embedColor,\n      footer: {\n        text: \"YZEE Labs Control Plane | n8n Automation Engine\"\n      }\n    }]\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2000,
+        0
+      ],
+      "id": "generate-consolidated-embed-id",
+      "name": "Generate Consolidated Embed"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://discord.com/api/webhooks/REDACTED/REDACTED",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{JSON.stringify($json)}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2200,
+        0
+      ],
+      "id": "discord-webhook-id",
+      "name": "Discord Webhook"
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "test-daily-report",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        150
+      ],
+      "id": "webhook-trigger-id",
+      "name": "Webhook"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Service List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Service List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Service List": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Health Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Health Check": {
+      "main": [
+        [
+          {
+            "node": "SSH: Host Checks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SSH: Host Checks": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Host Checks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Host Checks": {
+      "main": [
+        [
+          {
+            "node": "SSH: Nextcloud Backup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SSH: Nextcloud Backup": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Nextcloud Backup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Nextcloud Backup": {
+      "main": [
+        [
+          {
+            "node": "SSH: Proxmox Backup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SSH: Proxmox Backup": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Proxmox Backup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Proxmox Backup": {
+      "main": [
+        [
+          {
+            "node": "Generate Consolidated Embed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Consolidated Embed": {
+      "main": [
+        [
+          {
+            "node": "Discord Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": {
+    "node:Schedule Trigger": {
+      "recurrenceRules": []
+    }
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "7d8d4063-3579-41c3-8767-4fe47f82d438",
+  "activeVersionId": "7d8d4063-3579-41c3-8767-4fe47f82d438",
+  "versionCounter": 4,
+  "triggerCount": 2,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-06-14T21:25:22.926Z",
+      "createdAt": "2026-06-14T21:25:22.926Z",
+      "role": "workflow:owner",
+      "workflowId": "YzeConsolidatedHp",
+      "projectId": "watVxhiyEGu7o6r1",
+      "project": {
+        "updatedAt": "2026-05-16T23:36:59.733Z",
+        "createdAt": "2026-05-16T23:33:23.057Z",
+        "id": "watVxhiyEGu7o6r1",
+        "name": "Alfredo Yciano <alfredohiciano13@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "a28a00c5-b0c8-43be-bdf6-fd02a41bbc63"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}

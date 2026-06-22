@@ -1,0 +1,20 @@
+services:
+  semaphore:
+    image: semaphoreui/semaphore:latest
+    container_name: semaphore
+    restart: unless-stopped
+    ports:
+      - "3005:3000"
+    environment:
+      - SEMAPHORE_DB_DIALECT=bolt
+      - SEMAPHORE_DB_HOST=/var/lib/semaphore/database.boltdb
+      - SEMAPHORE_PLAYBOOK_PATH=/tmp/semaphore
+      - SEMAPHORE_ADMIN=yzee
+      - "SEMAPHORE_ADMIN_PASSWORD=${SEMAPHORE_ADMIN_PASSWORD:?set in local .env}"
+      - SEMAPHORE_ADMIN_NAME=Yzee Admin
+      - SEMAPHORE_ADMIN_EMAIL=admin@homelab.local
+      - "SEMAPHORE_ACCESS_KEY_ENCRYPTION=${SEMAPHORE_ACCESS_KEY_ENCRYPTION:?set in local .env}"
+    volumes:
+      - ./data:/var/lib/semaphore
+      - ./config:/etc/semaphore
+      - /home/yzee/repos/homelab/ansible:/ansible

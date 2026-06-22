@@ -1,0 +1,66 @@
+---
+- name: Deploy SSH Login Alerts to Discord
+  hosts: linux_servers
+  become: true
+  vars:
+    discord_webhook_url: "{{ ssh_alerts_discord_webhook | default('YOUR_DISCORD_WEBHOOK_URL') }}"
+
+  tasks:
+    - name: Create SSH alert script
+      copy:
+        dest: /usr/local/bin/ssh-login-alert.sh
+        owner: root
+        group: root
+        mode: '0755'
+        content: |
+          #!/usr/bin/env bash
+          # Triggered by PAM on successful SSH login.
+          # Sends a webhook alert to Discord.
+
+          if [ "$PAM_TYPE" = "open_session" ]; then
+              WEBHOOK_URL="{{ discord_webhook_url }}"
+
+              # Skip if webhook is placeholder
+              if [ "$WEBHOOK_URL" = "YOUR_DISCORD_WEBHOOK_URL" ]; then
+                  exit 0
+              fi
+
+              # Gather variables
+              USER_LOGIN="$PAM_USER"
+              REMOTE_IP="$PAM_RHOST"
+              SERVER_NAME=$(hostname)
+              LOGIN_TIME=$(date "+%Y-%m-%d %H:%M:%S")
+
+              # Ignore local/loopback logins
+              if [ "$REMOTE_IP" = "localhost" ] || [ "$REMOTE_IP" = "127.0.0.1" ] || [ "$REMOTE_IP" = "::1" ]; then
+                  exit 0
+              fi
+
+              # Create JSON payload
+              PAYLOAD=$(cat <<INNER_EOF
+              {
+                "username": "SSH Alert Bot",
+                "embeds": [{
+                  "title": "🚨 Successful SSH Login",
+                  "color": 15158332,
+                  "fields": [
+                    { "name": "Server", "value": "${SERVER_NAME}", "inline": true },
+                    { "name": "User", "value": "${USER_LOGIN}", "inline": true },
+                    { "name": "Remote IP", "value": "${REMOTE_IP}", "inline": false },
+                    { "name": "Time", "value": "${LOGIN_TIME}", "inline": false }
+                  ]
+                }]
+              }
+          INNER_EOF
+              )
+
+              # Send POST request to Discord
+              curl -s -H "Content-Type: application/json" -X POST -d "$PAYLOAD" "$WEBHOOK_URL"
+          fi
+
+    - name: Enable SSH login script in PAM configuration
+      lineinfile:
+        path: /etc/pam.d/sshd
+        line: session optional pam_exec.so seteuid /usr/local/bin/ssh-login-alert.sh
+        state: present
+        insertafter: EOF

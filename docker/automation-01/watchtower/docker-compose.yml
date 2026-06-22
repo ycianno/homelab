@@ -1,0 +1,18 @@
+services:
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    restart: unless-stopped
+    environment:
+      - TZ=America/Santo_Domingo
+      - DOCKER_API_VERSION=1.40
+      - WATCHTOWER_MONITOR_ONLY=false
+      - WATCHTOWER_LABEL_ENABLE=true
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_SCHEDULE=0 0 8 * * *
+      - WATCHTOWER_NOTIFICATIONS=shoutrrr
+      - WATCHTOWER_NOTIFICATION_URL=generic+http://10.0.0.67:5678/webhook/watchtower-alert
+      - WATCHTOWER_NOTIFICATION_REPORT=true
+      - WATCHTOWER_NOTIFICATION_TITLE_TAG=automation-01
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock

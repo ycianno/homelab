@@ -1,0 +1,88 @@
+{
+  "updatedAt": "2026-05-30T14:40:27.610Z",
+  "createdAt": "2026-05-30T14:40:27.610Z",
+  "id": "EAcHLCXJJFLwCnLM",
+  "name": "Global Error Handler",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        100,
+        100
+      ],
+      "id": "error-trigger-id",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "content": "=🚨 **Workflow Error Alert**\n\n• **Workflow:** `{{$json.workflow.name}}` (ID: `{{$json.workflow.id}}`)\n• **Node:** `{{$json.execution.error.nodeName}}`\n• **Message:** `{{$json.execution.error.message}}`\n• **Execution URL:** {{$json.execution.url}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        300,
+        100
+      ],
+      "id": "discord-error-node-id",
+      "name": "Discord Error Alert",
+      "credentials": {
+        "discordWebhookApi": {
+          "id": "ZUE94hnemt0aeYVD",
+          "name": "Discord Webhook account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Discord Error Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": null,
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "6317e4bb-ea98-49a6-9628-40ca7342cb29",
+  "activeVersionId": "6317e4bb-ea98-49a6-9628-40ca7342cb29",
+  "versionCounter": 1,
+  "triggerCount": 0,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-05-30T14:40:27.625Z",
+      "createdAt": "2026-05-30T14:40:27.625Z",
+      "role": "workflow:owner",
+      "workflowId": "EAcHLCXJJFLwCnLM",
+      "projectId": "watVxhiyEGu7o6r1",
+      "project": {
+        "updatedAt": "2026-05-16T23:36:59.733Z",
+        "createdAt": "2026-05-16T23:33:23.057Z",
+        "id": "watVxhiyEGu7o6r1",
+        "name": "Alfredo Yciano <alfredohiciano13@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "a28a00c5-b0c8-43be-bdf6-fd02a41bbc63"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}

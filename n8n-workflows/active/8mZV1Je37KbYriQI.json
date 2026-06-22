@@ -1,0 +1,527 @@
+{
+  "updatedAt": "2026-05-24T22:00:01.966Z",
+  "createdAt": "2026-05-24T20:12:25.493Z",
+  "id": "8mZV1Je37KbYriQI",
+  "name": "Zoho Weekly Recruitment Report - v2 Financials",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                4
+              ],
+              "triggerAtHour": 7
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -64,
+        -224
+      ],
+      "id": "f5961ce5-82d3-4565-9f42-eadc6bd0c44e",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = new Date();\n\n// n8n should run this on Thursday.\n// Report covers previous Thursday 00:00:00 through Wednesday 23:59:59.\n\nconst start = new Date(now);\nstart.setDate(now.getDate() - 7);\nstart.setHours(0, 0, 0, 0);\n\nconst end = new Date(now);\nend.setDate(now.getDate() - 1);\nend.setHours(23, 59, 59, 999);\n\nconst formatDate = (date) => {\n  return date.toISOString();\n};\n\nreturn [\n  {\n    json: {\n      report_start: formatDate(start),\n      report_end: formatDate(end),\n      report_label: `${start.toDateString()} - ${end.toDateString()}`\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        -64
+      ],
+      "id": "e75e5684-6b5f-4848-ac1c-7060d17f788b",
+      "name": "Set Report Date Range"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://accounts.zoho.com/oauth/v2/token",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "grant_type",
+              "value": "refresh_token"
+            },
+            {
+              "name": "client_id",
+              "value": "1000.VUEE5FPBQ3Q8HHZULOI3PPMHWV599N"
+            },
+            {
+              "name": "client_secret",
+              "value": "148f2bb971057a918e053d9e69ab776c80499f6306"
+            },
+            {
+              "name": "refresh_token",
+              "value": "1000.40e4918369a51f8dc0a91a117adfee50.beaabcd8ac45a69bdcee545d406e65d2"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        272,
+        48
+      ],
+      "id": "5c64ca0c-8f65-4aee-a3a2-bf7431da5fed",
+      "name": "Zoho - Refresh Access Token"
+    },
+    {
+      "parameters": {
+        "url": "https://recruit.zoho.com/recruit/v2/Interviews",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "per_page",
+              "value": "200"
+            },
+            {
+              "name": "page",
+              "value": "1"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Zoho-oauthtoken {{$('Zoho - Refresh Access Token').first().json.access_token}}"
+            },
+            {
+              "name": "If-Modified-Since",
+              "value": "={{$('Set Report Date Range').first().json.report_start}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        784,
+        -112
+      ],
+      "id": "b512230e-5405-47b2-bca7-0abf7082b490",
+      "name": "Zoho - Get Interviews"
+    },
+    {
+      "parameters": {
+        "url": "https://recruit.zoho.com/recruit/v2/JobOpenings",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "per_page",
+              "value": "200"
+            },
+            {
+              "name": "page",
+              "value": "1"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Zoho-oauthtoken {{$('Zoho - Refresh Access Token').first().json.access_token}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        400,
+        -112
+      ],
+      "id": "2a0d9340-c608-4632-878b-394ff24f43bf",
+      "name": "Zoho - Get Job Openings"
+    },
+    {
+      "parameters": {
+        "url": "https://recruit.zoho.com/recruit/v2/Applications",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "per_page",
+              "value": "200"
+            },
+            {
+              "name": "page",
+              "value": "1"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Zoho-oauthtoken {{$('Zoho - Refresh Access Token').first().json.access_token}}"
+            },
+            {
+              "name": "If-Modified-Since",
+              "value": "={{$('Set Report Date Range').first().json.report_start}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        592,
+        -112
+      ],
+      "id": "1ce5e81f-4099-435f-9a54-3c01c55421e6",
+      "name": "Zoho - Get Applications"
+    },
+    {
+      "parameters": {
+        "jsCode": "const range = $('Set Report Date Range').first().json;\nconst start = new Date(range.report_start);\nconst end = new Date(range.report_end);\n\nconst jobOpeningResponse = $('Zoho - Get Job Openings').first().json;\nconst applicationResponse = $('Zoho - Get Applications').first().json;\nconst interviewResponse = $('Zoho - Get Interviews').first().json;\n\nconst jobs = jobOpeningResponse.data || [];\nconst applications = applicationResponse.data || [];\nconst interviews = interviewResponse.data || [];\n\nfunction normalizeLookup(value) {\n  if (!value) return '';\n  if (typeof value === 'string') return value;\n  if (value.name) return value.name;\n  return String(value);\n}\n\nfunction isWithinRange(value) {\n  if (!value) return false;\n  const date = new Date(value);\n  return date >= start && date <= end;\n}\n\nfunction getJobTitleFromJob(job) {\n  return normalizeLookup(\n    job.Job_Opening_Name ||\n    job.Posting_Title ||\n    job.Job_Title ||\n    job['Job Opening Name']\n  );\n}\n\nfunction getJobTitleFromApplication(app) {\n  return normalizeLookup(\n    app.Job_Opening_Name ||\n    app.Posting_Title ||\n    app.Job_Opening_ID\n  );\n}\n\nfunction getJobTitleFromInterview(interview) {\n  return normalizeLookup(interview.Job_Opening_Name);\n}\n\nfunction getClientFromJob(job) {\n  return normalizeLookup(\n    job.Department_Name ||\n    job.Client ||\n    job.Client_Name ||\n    job.Account_Name ||\n    job.Department ||\n    job.Hiring_Manager_Details\n  );\n}\n\nfunction getStatusFromJob(job) {\n  return normalizeLookup(\n    job.Job_Opening_Status ||\n    job.Job_Status ||\n    job.Status ||\n    job.Publish\n  );\n}\n\nfunction parseSalaryRange(salaryStr) {\n  if (!salaryStr) return { min: 0, max: 0 };\n  let cleanStr = salaryStr\n    .replace(/RD\\$/g, '')\n    .replace(/RD/g, '')\n    .replace(/DOP/g, '')\n    .replace(/\\$/g, '')\n    .replace(/,/g, '')\n    .trim();\n  cleanStr = cleanStr.replace(/ to /gi, '|').replace(/to/gi, '|').replace(/[\\t\\-–]/g, '|');\n  const parts = cleanStr.split('|').map(p => p.trim()).filter(Boolean);\n  if (parts.length === 1) {\n    const val = parseFloat(parts[0]);\n    return isNaN(val) ? { min: 0, max: 0 } : { min: val, max: val };\n  } else if (parts.length >= 2) {\n    const minVal = parseFloat(parts[0]);\n    const maxVal = parseFloat(parts[1]);\n    return {\n      min: isNaN(minVal) ? 0 : minVal,\n      max: isNaN(maxVal) ? 0 : maxVal\n    };\n  }\n  return { min: 0, max: 0 };\n}\n\nfunction emptyRow(title = '') {\n  return {\n    'Report Period': range.report_label,\n    'Job Title': title,\n    'Client': '',\n    'Job Opening Status': '',\n    'Total Candidates in Job Opening': 0,\n    'Candidates Worked This Week': 0,\n    'Candidates Invited to Book': 0,\n    'Candidates Booked': 0,\n    'Candidates Interviewed': 0,\n    'Salary Range DOP': '',\n    'Salary Min DOP': 0,\n    'Salary Max DOP': 0,\n    'Billing Rate USD Monthly': '',\n    'Estimated Annual Revenue USD': '',\n    'Estimated Salary Max USD': '',\n    'Estimated Monthly Gross Profit USD': '',\n    'Gross Margin %': '',\n    'Data Quality Notes': 'OK'\n  };\n}\n\nconst reportByJob = {};\n\n// 1. Create base rows from Job Openings\nfor (const job of jobs) {\n  const title = getJobTitleFromJob(job);\n  if (!title) continue;\n\n  if (!reportByJob[title]) {\n    reportByJob[title] = emptyRow(title);\n  }\n\n  const client = getClientFromJob(job);\n  reportByJob[title]['Client'] = client;\n  reportByJob[title]['Job Opening Status'] = getStatusFromJob(job);\n  \n  reportByJob[title]['Total Candidates in Job Opening'] = job.No_of_Candidates_Associated || 0;\n  \n  // Populate financial fields\n  const salaryStr = job.Salary || '';\n  reportByJob[title]['Salary Range DOP'] = salaryStr;\n  \n  const sal = parseSalaryRange(salaryStr);\n  reportByJob[title]['Salary Min DOP'] = sal.min;\n  reportByJob[title]['Salary Max DOP'] = sal.max;\n  \n  const billingRate = job.Billing_to_Client;\n  if (billingRate !== null && billingRate !== undefined && billingRate !== '') {\n    const brVal = parseFloat(billingRate);\n    if (!isNaN(brVal)) {\n      reportByJob[title]['Billing Rate USD Monthly'] = brVal;\n      reportByJob[title]['Estimated Annual Revenue USD'] = brVal * 12;\n      \n      if (sal.max > 0) {\n        const salUSD = sal.max / 60.0;\n        reportByJob[title]['Estimated Salary Max USD'] = Math.round(salUSD);\n        const profit = brVal - salUSD;\n        reportByJob[title]['Estimated Monthly Gross Profit USD'] = Math.round(profit);\n        reportByJob[title]['Gross Margin %'] = brVal > 0 ? (profit / brVal) : 0;\n      }\n    }\n  }\n  \n  // Data Quality check\n  let dqNotes = [];\n  if (!client) dqNotes.push('Missing Client');\n  if (!salaryStr) dqNotes.push('Missing Salary');\n  reportByJob[title]['Data Quality Notes'] = dqNotes.length > 0 ? dqNotes.join(', ') : 'OK';\n}\n\n// 2. Add Application-based counts\nfor (const app of applications) {\n  const title = getJobTitleFromApplication(app);\n  if (!title) continue;\n\n  if (!reportByJob[title]) {\n    reportByJob[title] = emptyRow(title);\n  }\n\n  // Total candidates count uses No_of_Candidates_Associated from JobOpenings, so we don't increment here.\n\n  // Weekly activity: application touched/updated this week\n  if (isWithinRange(app.Updated_On) || isWithinRange(app.Last_Activity_Time)) {\n    reportByJob[title]['Candidates Worked This Week']++;\n  }\n\n  // Weekly booking invite activity\n  if (isWithinRange(app.Booking_Link_Sent_Date)) {\n    reportByJob[title]['Candidates Invited to Book']++;\n  }\n}\n\n// 3. Add Interview-based counts\nfor (const interview of interviews) {\n  const title = getJobTitleFromInterview(interview);\n  if (!title) continue;\n\n  if (!reportByJob[title]) {\n    reportByJob[title] = emptyRow(title);\n  }\n\n  if (!isWithinRange(interview.Start_DateTime)) continue;\n\n  const status = String(interview.Interview_Status || '').trim().toLowerCase();\n\n  // Candidates booked this week\n  reportByJob[title]['Candidates Booked']++;\n\n  // Candidates interviewed this week\n  const interviewedStatuses = ['shortlist', 'wait-list', 'move to next round', 'completed', 'no show'];\n  if (interviewedStatuses.includes(status)) {\n    reportByJob[title]['Candidates Interviewed']++;\n  }\n}\n\n// 4. Sort and output rows\nconst rows = Object.values(reportByJob)\n  .filter(row => row['Job Title'])\n  .sort((a, b) => a['Job Title'].localeCompare(b['Job Title']));\n\nreturn rows.map(row => ({ json: row }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        16
+      ],
+      "id": "93516545-d46e-47cf-b714-a1ea8f0ea13a",
+      "name": "Build Weekly Job Report Rows"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(item => item.json);\n\nreturn [\n  {\n    json: {\n      report_period: rows[0]?.['Report Period'] || '',\n      generated_at: new Date().toISOString(),\n      rows\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1136,
+        16
+      ],
+      "id": "8d1ea7c5-c15a-47a6-9456-47eda4d71943",
+      "name": "Convert Rows to JSON Payload"
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $input.first().json;\nreturn [{ json: { jsonText: JSON.stringify(payload, null, 2) } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        16
+      ],
+      "id": "15e999cd-1571-428f-bb4b-507368f12c8c",
+      "name": "Prepare JSON File"
+    },
+    {
+      "parameters": {
+        "command": "=cat > /opt/stacks/n8n/n8n_data/reports/weekly-recruitment-data.json <<'EOF'\n{{$json.jsonText}}\nEOF"
+      },
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        1552,
+        -128
+      ],
+      "id": "87d34ce6-15ef-4364-a341-b86076bd8fef",
+      "name": "SSH - Write JSON File",
+      "credentials": {
+        "sshPassword": {
+          "id": "GW8PIlItkey26oPL",
+          "name": "automation-01"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "docker run --rm -v /opt/stacks/n8n/n8n_data:/work python:3.12-alpine sh -lc \"pip install openpyxl >/tmp/pip.log && python /work/scripts/fill_weekly_recruitment_template.py\""
+      },
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        1744,
+        -128
+      ],
+      "id": "f5058aa8-6d18-4cd0-9a68-8d58f5e6e316",
+      "name": "SSH - Fill Excel Template",
+      "credentials": {
+        "sshPassword": {
+          "id": "GW8PIlItkey26oPL",
+          "name": "automation-01"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "download",
+        "path": "/opt/stacks/n8n/n8n_data/reports/weekly-recruitment-report.xlsx",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        1936,
+        -128
+      ],
+      "id": "db5111c8-a375-4642-9d7b-beb678b50a25",
+      "name": "Download a file",
+      "credentials": {
+        "sshPassword": {
+          "id": "GW8PIlItkey26oPL",
+          "name": "automation-01"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $('Build Weekly Job Report Rows').all().map(item => item.json);\nconst range = $('Set Report Date Range').first().json;\n\nconst totalJobs = rows.length;\nconst activeJobs = rows.filter(r => r['Job Opening Status'] === 'In-progress').length;\nconst candidatesWorked = rows.reduce((sum, r) => sum + (r['Candidates Worked This Week'] || 0), 0);\nconst candidatesBooked = rows.reduce((sum, r) => sum + (r['Candidates Booked'] || 0), 0);\nconst candidatesInterviewed = rows.reduce((sum, r) => sum + (r['Candidates Interviewed'] || 0), 0);\n\nconst message = `📊 **Weekly Recruitment Report Summary**\n🗓️ **Period:** ${range.report_label}\n\n💼 **Job Openings:**\n• Total Positions: **${totalJobs}**\n• Active (In-progress): **${activeJobs}**\n\n👥 **Weekly Activity:**\n• Candidates Worked: **${candidatesWorked}**\n• Candidates Booked: **${candidatesBooked}**\n• Candidates Interviewed: **${candidatesInterviewed}**\n\n📎 *The full Excel report is attached below.*`;\n\nreturn [{ json: { message } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1136,
+        -200
+      ],
+      "id": "prepare-discord-msg-node-id",
+      "name": "Prepare Discord Message"
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "content": "={{$('Prepare Discord Message').first().json.message}}",
+        "files": {
+          "values": [
+            {
+              "inputFieldName": "data"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        2150,
+        -128
+      ],
+      "id": "discord-delivery-node-id",
+      "name": "Discord Delivery",
+      "credentials": {
+        "discordWebhookApi": {
+          "id": "ZUE94hnemt0aeYVD",
+          "name": "Discord Webhook account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Report Date Range",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Report Date Range": {
+      "main": [
+        [
+          {
+            "node": "Zoho - Refresh Access Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zoho - Refresh Access Token": {
+      "main": [
+        [
+          {
+            "node": "Zoho - Get Job Openings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zoho - Get Interviews": {
+      "main": [
+        [
+          {
+            "node": "Build Weekly Job Report Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zoho - Get Job Openings": {
+      "main": [
+        [
+          {
+            "node": "Zoho - Get Applications",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zoho - Get Applications": {
+      "main": [
+        [
+          {
+            "node": "Zoho - Get Interviews",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Weekly Job Report Rows": {
+      "main": [
+        [
+          {
+            "node": "Convert Rows to JSON Payload",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare Discord Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert Rows to JSON Payload": {
+      "main": [
+        [
+          {
+            "node": "Prepare JSON File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare JSON File": {
+      "main": [
+        [
+          {
+            "node": "SSH - Write JSON File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SSH - Write JSON File": {
+      "main": [
+        [
+          {
+            "node": "SSH - Fill Excel Template",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SSH - Fill Excel Template": {
+      "main": [
+        [
+          {
+            "node": "Download a file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Discord Message": {
+      "main": [
+        []
+      ]
+    },
+    "Download a file": {
+      "main": [
+        [
+          {
+            "node": "Discord Delivery",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "errorWorkflow": "EAcHLCXJJFLwCnLM"
+  },
+  "staticData": {
+    "node:Schedule Trigger": {
+      "recurrenceRules": []
+    }
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "a56909bf-75cb-4088-9e19-4294ee2e4782",
+  "activeVersionId": "a56909bf-75cb-4088-9e19-4294ee2e4782",
+  "versionCounter": 55,
+  "triggerCount": 1,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-05-24T20:12:25.508Z",
+      "createdAt": "2026-05-24T20:12:25.508Z",
+      "role": "workflow:owner",
+      "workflowId": "8mZV1Je37KbYriQI",
+      "projectId": "watVxhiyEGu7o6r1",
+      "project": {
+        "updatedAt": "2026-05-16T23:36:59.733Z",
+        "createdAt": "2026-05-16T23:33:23.057Z",
+        "id": "watVxhiyEGu7o6r1",
+        "name": "Alfredo Yciano <alfredohiciano13@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "a28a00c5-b0c8-43be-bdf6-fd02a41bbc63"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}

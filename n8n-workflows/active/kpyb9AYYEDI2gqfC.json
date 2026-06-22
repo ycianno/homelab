@@ -1,0 +1,190 @@
+{
+  "updatedAt": "2026-05-31T13:25:06.666Z",
+  "createdAt": "2026-05-31T13:25:06.666Z",
+  "id": "kpyb9AYYEDI2gqfC",
+  "name": "Automatic Disk Space Remediation",
+  "description": null,
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "command": "echo '=== automation-01 ===' && df -h /\necho '=== docker-01 ===' && (ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 10.0.0.33 'df -h /' || echo 'OFFLINE')\necho '=== colmado-db ===' && (ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 10.0.0.35 'df -h /' || echo 'OFFLINE')"
+      },
+      "id": "ssh-df",
+      "name": "Execute df -h",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        300,
+        300
+      ],
+      "credentials": {
+        "sshPassword": {
+          "id": "GW8PIlItkey26oPL",
+          "name": "automation-01"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const stdout = items[0].json.stdout || \"\";\nconst sections = stdout.split(\"===\");\nconst reports = [];\n\nfor (let i = 1; i < sections.length; i += 2) {\n  const host = sections[i].trim();\n  const content = sections[i+1] ? sections[i+1].trim() : \"\";\n  \n  if (content === \"OFFLINE\" || !content) {\n    continue;\n  }\n  \n  const lines = content.split(\"\\n\");\n  const dataLine = lines.find(line => line.includes(\"/\") || line.includes(\"tmpfs\") || line.match(/^\\/dev\\//) || line.split(/\\s+/).length >= 6 && line !== lines[0]);\n  if (dataLine) {\n    const parts = dataLine.trim().split(/\\s+/);\n    if (parts.length >= 6) {\n      reports.push({\n        host,\n        usage: parseInt(parts[4].replace(\"%\", \"\"), 10),\n        used: parts[2],\n        size: parts[1]\n      });\n    }\n  }\n}\n\n// We only filter for hosts with critical disk usage >= 90%\nconst criticalThreshold = 90;\nconst fullHosts = reports.filter(r => r.usage >= criticalThreshold);\n\nreturn fullHosts.map(fh => ({\n  json: {\n    host: fh.host,\n    usage: fh.usage + \"%\",\n    used: fh.used,\n    size: fh.size,\n    shouldTrigger: true\n  }\n}));"
+      },
+      "id": "js-parse-disk",
+      "name": "Parse & Filter Critical Hosts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://10.0.0.67:3005/api/project/1/tasks",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"template_id\":3,\"debug\":false,\"dry_run\":false,\"environment\":\"{}\",\"limit\":\"\" + $json.host + \"\"}",
+        "options": {}
+      },
+      "id": "http-semaphore-cleanup",
+      "name": "Trigger Docker Cleanup",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        720,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Ansible",
+          "name": "Ansible"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "content": "=🚨 **Critical Disk Space Remediation Triggered**\n- **Host:** `{{ $json.host }}`\n- **Disk Usage:** `{{ $json.usage }}` ({{ $json.used }} / {{ $json.size }})\n- **Ansible Action:** Running **Docker Disk & Log Cleanup** via Semaphore (Template ID 3, limited to `{{ $json.host }}`).",
+        "options": {}
+      },
+      "id": "discord-cleanup-alert",
+      "name": "Discord Alert",
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        920,
+        300
+      ],
+      "credentials": {
+        "discordWebhookApi": {
+          "id": "ZUE94hnemt0aeYVD",
+          "name": "Discord Webhook account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Execute df -h",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute df -h": {
+      "main": [
+        [
+          {
+            "node": "Parse & Filter Critical Hosts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse & Filter Critical Hosts": {
+      "main": [
+        [
+          {
+            "node": "Trigger Docker Cleanup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger Docker Cleanup": {
+      "main": [
+        [
+          {
+            "node": "Discord Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "74141a94-c3e6-4238-8a82-daa1b8ce1c68",
+  "activeVersionId": null,
+  "versionCounter": 1,
+  "triggerCount": 0,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-05-31T13:25:06.679Z",
+      "createdAt": "2026-05-31T13:25:06.679Z",
+      "role": "workflow:owner",
+      "workflowId": "kpyb9AYYEDI2gqfC",
+      "projectId": "watVxhiyEGu7o6r1",
+      "project": {
+        "updatedAt": "2026-05-16T23:36:59.733Z",
+        "createdAt": "2026-05-16T23:33:23.057Z",
+        "id": "watVxhiyEGu7o6r1",
+        "name": "Alfredo Yciano <alfredohiciano13@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "a28a00c5-b0c8-43be-bdf6-fd02a41bbc63"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}

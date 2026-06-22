@@ -1,0 +1,151 @@
+{
+  "name": "Semaphore Auto-Remediation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "uptime-kuma-remediation",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = items[0].json.body || items[0].json;\nconst monitor = body.monitor || {};\nconst heartbeat = body.heartbeat || {};\nconst msg = body.msg || \"\";\n\n// Uptime Kuma status: 0 = DOWN, 1 = UP. Remediation only runs on DOWN events.\nconst isDown = heartbeat.status === 0 || msg.includes(\"DOWN\");\n\nlet stackName = \"\";\nlet targetHost = \"\";\nlet shouldTrigger = false;\n\nif (isDown && monitor.name) {\n  const monitorName = monitor.name;\n  switch (monitorName) {\n    case \"Nextcloud\":\n      stackName = \"nextcloud\";\n      targetHost = \"docker-01\";\n      shouldTrigger = true;\n      break;\n    case \"Dozzle\":\n      stackName = \"dozzle\";\n      targetHost = \"docker-01\";\n      shouldTrigger = true;\n      break;\n    case \"n8n\":\n      stackName = \"n8n\";\n      targetHost = \"automation-01\";\n      shouldTrigger = true;\n      break;\n    case \"Semaphore\":\n      stackName = \"semaphore\";\n      targetHost = \"automation-01\";\n      shouldTrigger = true;\n      break;\n    case \"Portainer Agent\":\n      stackName = \"portainer-agent\";\n      targetHost = \"docker-01\";\n      shouldTrigger = true;\n      break;\n    case \"Homepage\":\n      stackName = \"homepage\";\n      targetHost = \"automation-01\";\n      shouldTrigger = true;\n      break;\n    default:\n      break;\n  }\n}\n\nreturn [\n  {\n    json: {\n      isDown,\n      monitorName: monitor.name || \"Unknown\",\n      stackName,\n      targetHost,\n      shouldTrigger,\n      msg\n    }\n  }\n];"
+      },
+      "id": "js-mapping",
+      "name": "Map Monitor to Stack & Host",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        300,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.shouldTrigger }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "if-should-trigger",
+      "name": "Should Trigger?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        500,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://10.0.0.67:3005/api/project/1/tasks",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"template_id\":4,\"debug\":false,\"dry_run\":false,\"environment\":\"{\\\"stack_name\\\":\\\"\" + $json.stackName + \"\\\"}\",\"limit\":\"\" + $json.targetHost + \"\"}",
+        "options": {}
+      },
+      "id": "http-semaphore-trigger",
+      "name": "Trigger Semaphore self-healing",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        700,
+        180
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Ansible",
+          "name": "Ansible"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "content": "=🚨 **Uptime Kuma Auto-Remediation Triggered**\n- **Service DOWN:** `{{ $json.monitorName }}`\n- **Ansible Action:** Re-deploying stack `{{ $json.stackName }}` on host `{{ $json.targetHost }}` via Semaphore template ID 4.\n- **Status Message:** `{{ $json.msg }}`",
+        "options": {}
+      },
+      "id": "discord-remediation-alert",
+      "name": "Discord Alert",
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        920,
+        180
+      ],
+      "credentials": {
+        "discordWebhookApi": {
+          "id": "ZUE94hnemt0aeYVD",
+          "name": "Discord Webhook account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Map Monitor to Stack & Host",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map Monitor to Stack & Host": {
+      "main": [
+        [
+          {
+            "node": "Should Trigger?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Should Trigger?": {
+      "main": [
+        [
+          {
+            "node": "Trigger Semaphore self-healing",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Trigger Semaphore self-healing": {
+      "main": [
+        [
+          {
+            "node": "Discord Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

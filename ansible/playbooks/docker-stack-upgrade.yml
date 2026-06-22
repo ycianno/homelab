@@ -1,0 +1,37 @@
+---
+- name: Docker Stack Upgrade Playbook
+  hosts: "{{ limit_hosts | default('docker_servers, automation') }}"
+  gather_facts: no
+  become: yes
+  vars:
+    stack_name: ""
+    stack_path: "/opt/stacks/{{ stack_name }}"
+
+  tasks:
+    - name: Fail if stack_name is not defined
+      fail:
+        msg: "Please specify a stack_name to update (e.g. n8n, nextcloud, supabase)."
+      when: stack_name == ""
+
+    - name: Verify stack path exists
+      stat:
+        path: "{{ stack_path }}"
+      register: dir_status
+
+    - name: Fail if stack path does not exist
+      fail:
+        msg: "Stack path {{ stack_path }} does not exist on target host."
+      when: not dir_status.stat.exists
+
+    - name: Pull latest Docker images for the stack
+      command: docker compose pull
+      args:
+        chdir: "{{ stack_path }}"
+
+    - name: Redeploy Docker containers
+      command: docker compose up -d
+      args:
+        chdir: "{{ stack_path }}"
+
+    - name: Prune dangling images
+      command: docker image prune -f

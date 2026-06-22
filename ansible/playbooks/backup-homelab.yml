@@ -1,0 +1,12 @@
+---
+- name: Run Homelab Server-Side Backups
+  hosts: automation
+  tasks:
+    - name: Run Unified Daily Backup Script
+      ansible.builtin.command:
+        cmd: /bin/bash ../../scripts/backup_server.sh
+      register: backup_output
+
+    - name: Show Backup Output Logs
+      ansible.builtin.debug:
+        var: backup_output.stdout_lines

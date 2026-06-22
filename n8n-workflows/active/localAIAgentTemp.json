@@ -1,0 +1,138 @@
+{
+  "updatedAt": "2026-06-02T19:50:11.442Z",
+  "createdAt": "2026-06-02T19:02:56.018Z",
+  "id": "localAIAgentTemp",
+  "name": "Local AI Agent Template",
+  "description": null,
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.6,
+      "position": [
+        464,
+        0
+      ],
+      "id": "agent-node-id",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "deepseek-r1:8b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        208,
+        208
+      ],
+      "id": "ollama-model-id",
+      "name": "Ollama Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "ollamaMacCred1234",
+          "name": "Ollama Mac"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.2,
+      "position": [
+        352,
+        208
+      ],
+      "id": "memory-node-id",
+      "name": "Window Buffer Memory"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "19880b29-54db-47b0-8339-243c228302ed",
+      "name": "When clicking ‘Execute workflow’"
+    }
+  ],
+  "connections": {
+    "Ollama Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Window Buffer Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "35df0575-9cfe-4c55-9da6-556950f12a80",
+  "activeVersionId": null,
+  "versionCounter": 5,
+  "triggerCount": 0,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-06-02T19:02:56.066Z",
+      "createdAt": "2026-06-02T19:02:56.066Z",
+      "role": "workflow:owner",
+      "workflowId": "localAIAgentTemp",
+      "projectId": "watVxhiyEGu7o6r1",
+      "project": {
+        "updatedAt": "2026-05-16T23:36:59.733Z",
+        "createdAt": "2026-05-16T23:33:23.057Z",
+        "id": "watVxhiyEGu7o6r1",
+        "name": "Alfredo Yciano <alfredohiciano13@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "a28a00c5-b0c8-43be-bdf6-fd02a41bbc63"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}

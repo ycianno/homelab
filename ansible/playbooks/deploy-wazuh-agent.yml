@@ -1,0 +1,79 @@
+---
+- name: Deploy Wazuh Agent to All Linux Servers
+  hosts: linux_servers:!security
+  become: yes
+  vars:
+    wazuh_manager_ip: "10.0.0.40"
+    wazuh_agent_version: "4.11.2-1"
+
+  tasks:
+    - name: Import Wazuh GPG key
+      shell: |
+        set -o pipefail
+        curl -s https://packages.wazuh.com/key/GPG-KEY-WAZUH |
+          gpg --no-default-keyring \
+            --keyring gnupg-ring:/usr/share/keyrings/wazuh.gpg \
+            --import
+        chmod 644 /usr/share/keyrings/wazuh.gpg
+      args:
+        creates: /usr/share/keyrings/wazuh.gpg
+        executable: /bin/bash
+
+    - name: Add Wazuh APT repository
+      copy:
+        dest: /etc/apt/sources.list.d/wazuh.list
+        content: "deb [signed-by=/usr/share/keyrings/wazuh.gpg] https://packages.wazuh.com/4.x/apt/ stable main\n"
+
+    - name: Purge any conflicting wazuh-agent installation
+      apt:
+        name: wazuh-agent
+        state: absent
+        purge: yes
+
+    - name: Force systemd daemon-reload to clear obsolete units
+      systemd:
+        daemon_reload: yes
+
+    - name: Install python3-docker package for Docker monitoring
+      apt:
+        name: python3-docker
+        state: present
+
+    - name: Install pinned Wazuh agent
+      apt:
+        name: "wazuh-agent={{ wazuh_agent_version }}"
+        state: present
+        update_cache: yes
+      environment:
+        WAZUH_MANAGER: "{{ wazuh_manager_ip }}"
+
+    - name: Configure Wazuh Docker integration in ossec.conf
+      blockinfile:
+        path: /var/ossec/etc/ossec.conf
+        marker: "<!-- {mark} WAZUH DOCKER LISTENER CONFIG -->"
+        block: |
+          <ossec_config>
+            <wodle name="docker-listener">
+              <disabled>no</disabled>
+            </wodle>
+            <localfile>
+              <log_format>syslog</log_format>
+              <location>/var/lib/docker/containers/*/*-json.log</location>
+            </localfile>
+          </ossec_config>
+
+    - name: Enable and start Wazuh agent
+      systemd:
+        name: wazuh-agent
+        enabled: yes
+        state: restarted
+        daemon_reload: yes
+
+    - name: Verify agent is running
+      command: systemctl status wazuh-agent
+      register: agent_status
+      changed_when: false
+
+    - name: Report agent status
+      debug:
+        msg: "Wazuh agent on {{ inventory_hostname }} is {{ 'ACTIVE ✅' if agent_status.rc == 0 else 'FAILED ❌' }}"

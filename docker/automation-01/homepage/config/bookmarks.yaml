@@ -1,0 +1,96 @@
+---
+- "PL-900 \u2013 Power Platform":
+    - Microsoft Learn Path:
+        - abbr: PL9
+          href: https://learn.microsoft.com/en-us/credentials/certifications/power-platform-fundamentals/
+          description: Official study path & exam details
+    - Practice Assessment:
+        - abbr: PA
+          href: https://learn.microsoft.com/en-us/credentials/certifications/power-platform-fundamentals/practice/assessment?assessment-type=practice&assessmentId=34
+          description: Free practice questions
+    - Power Apps:
+        - abbr: PWA
+          href: https://make.powerapps.com
+          description: Build low-code apps
+    - Power Automate:
+        - abbr: PWF
+          href: https://make.powerautomate.com
+          description: Build automated flows
+
+- "AZ-900 \u2013 Azure Fundamentals":
+    - Microsoft Learn Path:
+        - abbr: AZ9
+          href: https://learn.microsoft.com/en-us/credentials/certifications/azure-fundamentals/
+          description: Official study path & exam details
+    - Azure Portal:
+        - abbr: AZP
+          href: https://portal.azure.com
+          description: Azure management console
+    - Azure Free Account:
+        - abbr: AZF
+          href: https://azure.microsoft.com/en-us/free/
+          description: Free tier sandbox
+
+- "ITIL 4/5 Foundation":
+    - Axelos Official:
+        - abbr: ITL
+          href: https://www.axelos.com/certifications/itil-service-management/itil-4-foundation
+          description: Official ITIL resources
+    - PeopleCert:
+        - abbr: PC
+          href: https://www.peoplecert.org/browse-certifications/it-governance-and-service-management/ITIL-702
+          description: Exam registration
+
+- DevOps & Homelab:
+    - Proxmox Helper Scripts:
+        - abbr: PX
+          href: https://community-scripts.org/scripts
+          description: VM and LXC helpers
+    - Docker Hub:
+        - abbr: DH
+          href: https://hub.docker.com
+          description: Container images
+    - LinuxServer.io:
+        - abbr: LS
+          href: https://www.linuxserver.io
+          description: Docker images
+    - Ansible Galaxy:
+        - abbr: AG
+          href: https://galaxy.ansible.com
+          description: Roles and collections
+    - Awesome Selfhosted:
+        - abbr: AS
+          href: https://awesome-selfhosted.net
+          description: Self-hosted apps
+
+- Troubleshooting:
+    - ExplainShell:
+        - abbr: EX
+          href: https://explainshell.com
+          description: Linux commands
+    - Crontab Guru:
+        - abbr: CG
+          href: https://crontab.guru
+          description: Cron schedule helper
+    - DNS Checker:
+        - abbr: DNS
+          href: https://dnschecker.org
+          description: DNS propagation
+    - SSL Labs:
+        - abbr: SSL
+          href: https://www.ssllabs.com/ssltest/
+          description: HTTPS security test
+
+- Notes & Knowledge:
+    - Obsidian:
+        - abbr: OB
+          href: https://obsidian.md
+          description: Personal knowledge base
+    - Nextcloud Files:
+        - abbr: NF
+          href: http://10.0.0.33:8081
+          description: Personal file storage
+    - Homelab Docs:
+        - abbr: HD
+          href: https://github.com/ycianno/homelab/tree/main/docs
+          description: GitHub documentation

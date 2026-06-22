@@ -1,0 +1,122 @@
+---
+# deploy-crowdsec.yml — Deploys CrowdSec agent + firewall bouncer to workload nodes.
+# Run from automation-01 via Semaphore or CLI:
+#   ansible-playbook -i inventory.ini playbooks/deploy-crowdsec.yml --ask-become-pass
+#
+# Prerequisites:
+#   - CrowdSec LAPI must be running on security-01 (10.0.0.40:8080)
+#   - Generate bouncer API keys on security-01 BEFORE running this playbook:
+#       sudo cscli bouncers add docker01-bouncer
+#       sudo cscli bouncers add automation01-bouncer
+#       sudo cscli bouncers add colmadodb-bouncer
+#   - Set the keys in the vars section below or pass them via Semaphore survey.
+
+- name: Deploy CrowdSec Agent & Firewall Bouncer
+  hosts: linux_servers:!security
+  become: true
+  vars:
+    crowdsec_lapi_url: "http://10.0.0.40:8080"
+    # bouncer_keys should be defined in Semaphore's private environment variables to keep keys secure
+    # e.g., bouncer_keys: { "docker-01": "KEY", "automation-01": "KEY", ... }
+    bouncer_api_key: "{{ bouncer_keys[inventory_hostname] | default('') }}"
+
+  tasks:
+    # ── Step 1: Add CrowdSec Repository ──
+    - name: Add CrowdSec repository signing key and sources
+      ansible.builtin.shell: |
+        curl -s https://install.crowdsec.net | sh
+      args:
+        creates: /etc/apt/sources.list.d/crowdsec_crowdsec.list
+
+    # ── Step 2: Install CrowdSec Security Engine ──
+    - name: Install CrowdSec package
+      ansible.builtin.apt:
+        name: crowdsec
+        state: present
+        update_cache: true
+
+    # ── Step 3: Register with Central LAPI ──
+    - name: Register agent with central LAPI on security-01
+      ansible.builtin.shell: |
+        cscli lapi register -u {{ crowdsec_lapi_url }} --machine {{ inventory_hostname }}
+      register: register_result
+      changed_when: "'successfully' in register_result.stdout or register_result.rc == 0"
+      failed_when: register_result.rc != 0
+
+    - name: Update local_api_credentials to point to central LAPI
+      ansible.builtin.lineinfile:
+        path: /etc/crowdsec/local_api_credentials.yaml
+        regexp: '^url:'
+        line: 'url: {{ crowdsec_lapi_url }}'
+
+    # ── Step 4: Disable local LAPI (agent-only mode) ──
+    - name: Disable local LAPI server
+      ansible.builtin.replace:
+        path: /etc/crowdsec/config.yaml
+        regexp: '(\s+listen_uri:\s+).+'
+        replace: '\g<1>127.0.0.1:8080'
+      notify: restart crowdsec
+
+    - name: Stop local LAPI from binding
+      ansible.builtin.lineinfile:
+        path: /etc/crowdsec/config.yaml
+        insertafter: 'listen_uri:'
+        line: '    enable: false'
+        state: present
+      notify: restart crowdsec
+
+    # ── Step 5: Install Firewall Bouncer ──
+    - name: Install CrowdSec Firewall Bouncer (iptables)
+      ansible.builtin.apt:
+        name: crowdsec-firewall-bouncer-iptables
+        state: present
+        update_cache: true
+
+    - name: Configure bouncer API URL
+      ansible.builtin.lineinfile:
+        path: /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
+        regexp: '^api_url:'
+        line: 'api_url: {{ crowdsec_lapi_url }}'
+      notify: restart bouncer
+
+    - name: Configure bouncer API key (if provided)
+      ansible.builtin.lineinfile:
+        path: /etc/crowdsec/bouncers/crowdsec-firewall-bouncer.yaml
+        regexp: '^api_key:'
+        line: 'api_key: {{ bouncer_api_key }}'
+      when: bouncer_api_key is defined and bouncer_api_key | length > 0
+      notify: restart bouncer
+
+    # ── Step 6: Ensure services are running ──
+    - name: Restart and enable CrowdSec
+      ansible.builtin.systemd:
+        name: crowdsec
+        state: restarted
+        enabled: true
+
+    - name: Restart and enable firewall bouncer
+      ansible.builtin.systemd:
+        name: crowdsec-firewall-bouncer
+        state: restarted
+        enabled: true
+
+    # ── Verification ──
+    - name: Verify CrowdSec agent is running
+      ansible.builtin.command: cscli version
+      register: cscli_version
+      changed_when: false
+
+    - name: Show CrowdSec version
+      ansible.builtin.debug:
+        msg: "CrowdSec {{ cscli_version.stdout_lines[0] }} installed on {{ inventory_hostname }}"
+
+  handlers:
+    - name: restart crowdsec
+      ansible.builtin.systemd:
+        name: crowdsec
+        state: restarted
+
+    - name: restart bouncer
+      ansible.builtin.systemd:
+        name: crowdsec-firewall-bouncer
+        state: restarted

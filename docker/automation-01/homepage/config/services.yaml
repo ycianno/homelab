@@ -1,0 +1,212 @@
+- Professional Profile:
+    - GitHub:
+        href: https://github.com/ycianno
+        description: Public code & projects
+        icon: github.png
+
+    - LinkedIn:
+        href: https://www.linkedin.com/in/alfredoyciano/?locale=en
+        description: Professional network
+        icon: linkedin.png
+
+- Core Automation:
+    - n8n:
+        href: http://10.0.0.67:5678
+        description: Workflow automation engine
+        icon: n8n.png
+        server: my-docker
+        container: n8n
+        siteMonitor: http://10.0.0.67:5678
+
+    - Uptime Kuma:
+        href: https://kuma.local.yourdomain.com
+        description: Service uptime monitoring
+        icon: uptime-kuma.png
+        server: my-docker
+        container: uptime-kuma
+        siteMonitor: https://kuma.local.yourdomain.com
+
+    - Portainer:
+        href: https://portainer.local.yourdomain.com
+        description: Docker management dashboard
+        icon: portainer.png
+        server: my-docker
+        container: portainer
+        siteMonitor: https://portainer.local.yourdomain.com
+
+    - Nginx Proxy Manager:
+        href: https://npm.local.yourdomain.com
+        description: Reverse proxy manager & SSL certs
+        icon: nginx-proxy-manager.png
+        server: my-docker
+        container: nginx-proxy-manager
+        siteMonitor: https://npm.local.yourdomain.com
+
+- App Server:
+    - Nextcloud:
+        href: https://cloud.local.yourdomain.com
+        description: Private cloud storage
+        icon: nextcloud.png
+        siteMonitor: https://cloud.local.yourdomain.com/
+
+    - Dozzle:
+        href: https://dozzle.local.yourdomain.com
+        description: Docker log viewer
+        icon: docker.png
+        siteMonitor: https://dozzle.local.yourdomain.com
+
+    - Docker-01 Agent:
+        href: https://10.0.0.33:9001
+        description: Portainer agent endpoint
+        icon: docker.png
+
+    - Cloudflared:
+        href: https://dash.cloudflare.com
+        description: Cloudflare tunnel management
+        icon: cloudflare.png
+
+- Infrastructure:
+    - Proxmox:
+        href: https://10.0.0.167:8006
+        description: Virtualization host
+        icon: proxmox.png
+
+    - Pi-hole:
+        href: https://pihole.local.yourdomain.com/admin/
+        description: DNS filtering and ad blocking
+        icon: pi-hole.png
+        siteMonitor: https://pihole.local.yourdomain.com/admin/
+
+    - Twingate Admin:
+        href: https://alfredohiciano13.twingate.com
+        description: Secure remote access
+        icon: twingate.png
+
+    - Netdata automation-01:
+        href: https://netdata-auto.local.yourdomain.com
+        description: Live metrics for automation server
+        icon: netdata.png
+        siteMonitor: https://netdata-auto.local.yourdomain.com
+
+    - Netdata docker-01:
+        href: https://netdata-docker.local.yourdomain.com
+        description: Live metrics for Docker app server
+        icon: netdata.png
+        siteMonitor: https://netdata-docker.local.yourdomain.com
+
+    - Router / Network:
+        href: http://10.0.0.1
+        description: Local network gateway
+        icon: router.png
+
+- Tools:
+
+    - Life Control Center:
+        href: https://life.yourdomain.com
+        description: Personal organization and control panel
+        icon: openhab.png
+        server: my-docker
+        container: life-control-center
+        siteMonitor: https://life.yourdomain.com
+
+    - Local AI (Open WebUI):
+        href: https://ai.local.yourdomain.com
+        description: ChatGPT-style local LLM interface
+        icon: open-webui.png
+        server: my-docker
+        container: open-webui
+        siteMonitor: https://ai.local.yourdomain.com
+
+    - Semaphore:
+        href: https://ansible.local.yourdomain.com
+        description: Ansible automation UI
+        icon: semaphore.png
+        server: my-docker
+        container: semaphore
+        siteMonitor: https://ansible.local.yourdomain.com
+
+    - Homelab Repo:
+        href: https://github.com/ycianno/homelab
+        description: Docs, configs, and Ansible playbooks
+        icon: github.png
+
+- Security:
+    - Wazuh:
+        href: https://wazuh.local.yourdomain.com
+        description: SIEM & XDR Security Platform
+        icon: wazuh.png
+        siteMonitor: https://wazuh.local.yourdomain.com
+
+    - CrowdSec:
+        href: https://app.crowdsec.net
+        description: SIEM-IPS Console Dashboard
+        icon: crowdsec.png
+
+- "Vitrina Ecosystem │ BudgetNote Ecosystem":
+    - "◆ Vitrina (Live)":
+        href: https://vitrina.do
+        description: Production landing page
+        icon: https://vitrina.do/branding/vitrina-logo-icon-192.png
+        siteMonitor: https://vitrina.do
+
+    - "◆ BudgetNote (Live)":
+        href: https://budgetnote.net
+        description: Production landing page
+        icon: https://www.budgetnote.net/logo.png
+        siteMonitor: https://budgetnote.net
+
+    - Vitrina Prod DB:
+        href: https://supabase.com/dashboard/project/vrbxqhmltpufuvhoitdy
+        description: Supabase Production
+        icon: supabase.png
+
+    - Microsoft Store:
+        href: https://apps.microsoft.com/detail/9mtdzfv24k82?hl=en-US&gl=DO
+        description: BudgetNote store listing
+        icon: microsoft.png
+
+    - Vitrina Dev DB:
+        href: https://supabase.local.yourdomain.com
+        description: Self-hosted Supabase Studio
+        icon: supabase.png
+        siteMonitor: https://supabase.local.yourdomain.com
+
+    - Partner Center:
+        href: https://partner.microsoft.com/en-us/dashboard/products/9MTDZFV24K82/overview
+        description: BudgetNote Partner dashboard
+        icon: microsoft.png
+
+    - Vitrina Vercel:
+        href: https://vercel.com/yciannos-projects/vitrina
+        description: Frontend deployment
+        icon: vercel.png
+
+    - BudgetNote Vercel:
+        href: https://vercel.com/yciannos-projects/landing-getbud
+        description: Landing page deployment
+        icon: vercel.png
+
+    - Vitrina Render:
+        href: https://dashboard.render.com/web/srv-d50na975r7bs739itcag
+        description: Backend hosting
+        icon: render.png
+
+    - Lemon Squeezy:
+        href: https://app.lemonsqueezy.com
+        description: BudgetNote payments & licensing
+        icon: lemonsqueezy.png
+
+    - PostHog:
+        href: https://us.posthog.com/project/330698/dashboard/1328442
+        description: Vitrina product analytics
+        icon: posthog.png
+
+    - MailerSend:
+        href: https://app.mailersend.com/dashboard
+        description: BudgetNote transactional email
+        icon: mailersend.png
+
+    - Resend:
+        href: https://resend.com/emails
+        description: Vitrina transactional email
+        icon: resend.png

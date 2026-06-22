@@ -1,0 +1,41 @@
+name: Lint Configurations
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-yaml:
+    name: Lint YAML Configurations
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Yamllint
+        run: pip install yamllint
+
+      - name: Run Yamllint
+        run: |
+          # Run yamllint on compose files and playbook definitions, relaxing standard rules
+          yamllint -d "{extends: default, rules: {line-length: {max: 200}, document-start: disable, truthy: disable}}" .
+
+  lint-terraform:
+    name: Lint Terraform Formatting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Check Formatting
+        run: terraform fmt -check -recursive hypervisor/proxmox/terraform/

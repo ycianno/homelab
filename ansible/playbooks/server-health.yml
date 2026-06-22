@@ -1,0 +1,34 @@
+---
+- name: Basic server health check
+  hosts: linux_servers
+  gather_facts: yes
+
+  tasks:
+    - name: Show hostname
+      ansible.builtin.command: hostname
+      register: hostname_output
+      changed_when: false
+
+    - name: Show disk usage
+      ansible.builtin.command: df -h /
+      register: disk_output
+      changed_when: false
+
+    - name: Show uptime
+      ansible.builtin.command: uptime
+      register: uptime_output
+      changed_when: false
+
+    - name: Show Docker containers
+      ansible.builtin.command: docker container ls
+      register: docker_output
+      changed_when: false
+      failed_when: false
+
+    - name: Print health report
+      ansible.builtin.debug:
+        msg:
+          - "Host: {{ hostname_output.stdout }}"
+          - "{{ disk_output.stdout }}"
+          - "{{ uptime_output.stdout }}"
+          - "{{ docker_output.stdout }}"

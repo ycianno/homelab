@@ -1,0 +1,162 @@
+{
+  "updatedAt": "2026-06-22T03:28:14.919Z",
+  "createdAt": "2026-05-17T04:30:13.768Z",
+  "id": "H56zMRAdz8fbpQvz",
+  "name": "Homelab Container Status Report",
+  "description": null,
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8,
+              "triggerAtMinute": 2
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "a4aaa6cc-5b02-43b5-b33c-39c0a503706c",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "command": "docker ps --format \"automation-01|{{.Names}}|{{.Status}}\" || true\nssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 10.0.0.33 'docker ps --format \"docker-01|{{.Names}}|{{.Status}}\"' || echo \"docker-01|OFFLINE\"\nssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 10.0.0.35 'docker ps --format \"colmado-db|{{.Names}}|{{.Status}}\"' || echo \"colmado-db|OFFLINE\""
+      },
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "e737042a-72e3-46aa-b74a-9409c9685ad3",
+      "name": "Execute a command",
+      "credentials": {
+        "sshPassword": {
+          "id": "GW8PIlItkey26oPL",
+          "name": "automation-01"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const stdout = items[0].json.stdout || \"\";\n\nconst expected = {\n  \"automation-01\": [\n    \"netdata\",\n    \"portainer\",\n    \"uptime-kuma\",\n    \"homepage\",\n    \"watchtower\",\n    \"nginx-proxy-manager\",\n    \"n8n\",\n    \"life-control-center\",\n    \"semaphore\",\n    \"forgejo\"\n  ],\n  \"docker-01\": [\n    \"netdata\",\n    \"portainer_agent\",\n    \"dozzle\",\n    \"watchtower\",\n    \"cloudflared\",\n    \"nextcloud-app\",\n    \"nextcloud-redis\",\n    \"nextcloud-db\"\n  ],\n  \"colmado-db\": [\n    \"supabase-db\",\n    \"supabase-storage\",\n    \"supabase-meta\",\n    \"supabase-studio\",\n    \"supabase-pooler\",\n    \"realtime-dev.supabase-realtime\",\n    \"supabase-auth\",\n    \"supabase-edge-functions\",\n    \"supabase-kong\",\n    \"supabase-rest\",\n    \"supabase-analytics\",\n    \"supabase-vector\",\n    \"supabase-imgproxy\"\n  ]\n};\n\nconst running = {\n  \"automation-01\": {},\n  \"docker-01\": {},\n  \"colmado-db\": {}\n};\n\nconst offline = {\n  \"automation-01\": false,\n  \"docker-01\": false,\n  \"colmado-db\": false\n};\n\nfor (const line of stdout.trim().split(\"\\n\")) {\n  const parts = line.split(\"|\");\n  if (parts.length < 2) continue;\n  const host = parts[0].trim();\n  const nameOrStatus = parts[1].trim();\n  \n  if (nameOrStatus === \"OFFLINE\") {\n    offline[host] = true;\n    continue;\n  }\n  \n  if (parts.length >= 3) {\n    const status = parts[2].trim();\n    if (running[host]) {\n      running[host][nameOrStatus] = status;\n    }\n  }\n}\n\nconst lines = [];\nlines.push(\"🐳 **Homelab Container Status Report**\");\nlines.push(\"\");\nlines.push(`🕒 Time: ${new Date().toLocaleString(\"en-US\", { timeZone: \"America/Santo_Domingo\" })}`);\nlines.push(\"\");\n\nfor (const host of [\"automation-01\", \"docker-01\", \"colmado-db\"]) {\n  lines.push(`🖥️ **${host}**`);\n  if (offline[host]) {\n    lines.push(\"🚨 Host is offline or SSH connection failed!\");\n    lines.push(\"\");\n    continue;\n  }\n  \n  const hostExpected = expected[host];\n  const hostRunning = running[host];\n  let hostOk = true;\n  const hostLines = [];\n  \n  for (const name of hostExpected) {\n    if (hostRunning[name]) {\n      hostLines.push(`✅ **${name}**: ${hostRunning[name]}`);\n    } else {\n      hostLines.push(`🚨 **${name}**: Missing / Not running`);\n      hostOk = false;\n    }\n  }\n  \n  if (hostOk) {\n    lines.push(\"✅ All expected containers are running healthy.\");\n  } else {\n    lines.push(...hostLines);\n  }\n  lines.push(\"\");\n}\n\nreturn [\n  {\n    json: {\n      content: lines.join(\"\\n\")\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "f214dfc3-c270-4ec7-babe-e0b0ba108994",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "content": "={{ $json.content }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        624,
+        0
+      ],
+      "id": "2b76b6be-dcf4-49b5-9399-bdb9ae65f21f",
+      "name": "Discord",
+      "webhookId": "70d8c768-c26b-406e-be7a-42607077319a",
+      "credentials": {
+        "discordWebhookApi": {
+          "id": "ZUE94hnemt0aeYVD",
+          "name": "Discord Webhook account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Execute a command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a command": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Discord",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": {
+    "node:Schedule Trigger": {
+      "recurrenceRules": []
+    }
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "836132ff-cc94-4736-b563-0fbbe6af210d",
+  "activeVersionId": null,
+  "versionCounter": 43,
+  "triggerCount": 1,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-05-17T04:30:13.775Z",
+      "createdAt": "2026-05-17T04:30:13.775Z",
+      "role": "workflow:owner",
+      "workflowId": "H56zMRAdz8fbpQvz",
+      "projectId": "watVxhiyEGu7o6r1",
+      "project": {
+        "updatedAt": "2026-05-16T23:36:59.733Z",
+        "createdAt": "2026-05-16T23:33:23.057Z",
+        "id": "watVxhiyEGu7o6r1",
+        "name": "Alfredo Yciano <alfredohiciano13@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "a28a00c5-b0c8-43be-bdf6-fd02a41bbc63"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}

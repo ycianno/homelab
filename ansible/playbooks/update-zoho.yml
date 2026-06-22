@@ -1,0 +1,31 @@
+---
+- name: Run Zoho Recruit API Field Extraction
+  hosts: automation
+  tasks:
+    - name: Run Python Extraction Script
+      ansible.builtin.command:
+        cmd: python3 ../../scripts/update-zoho-fields.py
+      register: script_output
+
+    - name: Show Script Output
+      ansible.builtin.debug:
+        var: script_output.stdout_lines
+
+    - name: Check if there are changes in docs
+      ansible.builtin.command:
+        cmd: git status --porcelain ../../docs/
+      register: git_status
+      changed_when: false
+
+    - name: Commit and Push Updated Docs to GitHub
+      ansible.builtin.shell: |
+        git add ../../docs/
+        git commit -m "docs: Auto-update Zoho API Reference [skip ci]"
+        git push origin main
+      when: git_status.stdout != ""
+      register: git_push_output
+
+    - name: Show Git Push Output
+      ansible.builtin.debug:
+        var: git_push_output.stdout_lines
+      when: git_status.stdout != ""

@@ -1,0 +1,35 @@
+title: YZEE Labs
+theme: dark
+color: slate
+background:
+  image: ""
+  blur: sm
+  saturate: 50
+  brightness: 50
+cardBlur: sm
+headerStyle: boxed
+hideVersion: true
+statusStyle: dot
+useEqualHeights: true
+layout:
+  Professional Profile:
+    style: row
+    columns: 2
+  Core Automation:
+    style: row
+    columns: 3
+  App Server:
+    style: row
+    columns: 3
+  Infrastructure:
+    style: row
+    columns: 3
+  Tools:
+    style: row
+    columns: 2
+  Vitrina Ecosystem:
+    style: row
+    columns: 4
+  BudgetNote Ecosystem:
+    style: row
+    columns: 3

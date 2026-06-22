@@ -1,0 +1,13 @@
+---
+- name: Harden and Secure colmado-db VM
+  hosts: database_servers
+  become: yes
+  tasks:
+    - name: Run Hardening Script on Database Host
+      ansible.builtin.script:
+        cmd: ../../scripts/harden-db.sh
+      register: script_output
+
+    - name: Show Hardening Execution Logs
+      ansible.builtin.debug:
+        var: script_output.stdout_lines

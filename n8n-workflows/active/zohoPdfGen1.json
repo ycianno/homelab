@@ -1,0 +1,236 @@
+{
+  "updatedAt": "2026-06-16T19:53:27.000Z",
+  "createdAt": "2026-06-16T19:45:47.623Z",
+  "id": "zohoPdfGen1",
+  "name": "Zoho Recruit - Generate Job Description PDF",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate-job-pdf",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -250,
+        100
+      ],
+      "id": "webhook-trigger-id",
+      "name": "Webhook"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://accounts.zoho.com/oauth/v2/token",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "grant_type",
+              "value": "refresh_token"
+            },
+            {
+              "name": "client_id",
+              "value": "1000.VUEE5FPBQ3Q8HHZULOI3PPMHWV599N"
+            },
+            {
+              "name": "client_secret",
+              "value": "148f2bb971057a918e053d9e69ab776c80499f6306"
+            },
+            {
+              "name": "refresh_token",
+              "value": "1000.40e4918369a51f8dc0a91a117adfee50.beaabcd8ac45a69bdcee545d406e65d2"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -20,
+        100
+      ],
+      "id": "zoho-refresh-token-id",
+      "name": "Zoho - Refresh Access Token"
+    },
+    {
+      "parameters": {
+        "url": "=https://recruit.zoho.com/recruit/v2/JobOpenings/{{ $('Webhook').item.json.body?.job_id || \"838160000002701090\" }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Zoho-oauthtoken {{$('Zoho - Refresh Access Token').first().json.access_token}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        210,
+        100
+      ],
+      "id": "zoho-get-job-opening-id",
+      "name": "Zoho - Get Job Opening"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.item.json.data[0];\n\n// 1. Process Skills into HTML pills\nlet skillsHtml = '';\nif (item.Required_Skills) {\n  skillsHtml = item.Required_Skills.split(',')\n    .map(skill => `<span class=\"skill-pill\">${skill.trim()}</span>`)\n    .join('\\n      ');\n} else {\n  skillsHtml = '<span class=\"text-muted\">Not specified</span>';\n}\n\n// 2. Fetch nested department properties safely\nconst departmentName = item.Department_Name ? item.Department_Name.name : 'N/A';\n\n// 3. Fallback handlers for common null values\nconst salary = item.Salary || 'Competitive';\nconst city = item.City || 'Remote';\nconst country = item.Country || '';\nconst jobType = item.Job_Type || 'Full-Time';\n\n// 4. Format Description: handle newlines and bullets\nlet descriptionHtml = item.Job_Description || 'No description provided.';\nif (!descriptionHtml.includes('<p>') && !descriptionHtml.includes('</div>') && !descriptionHtml.includes('<br>')) {\n  descriptionHtml = descriptionHtml\n    .split(/\\n\\s*\\n/)\n    .map(para => {\n      const lines = para.split('\\n');\n      if (lines.length > 1 && lines.every(line => /^\\s*[\\-\\*•✔].*/.test(line))) {\n        const listItems = lines.map(line => `<li>${line.replace(/^\\s*[\\-\\*•✔]\\s*/, '')}</li>`).join('');\n        return `<ul>${listItems}</ul>`;\n      }\n      return `<p>${para.replace(/\\n/g, '<br>')}</p>`;\n    })\n    .join('\\n');\n}\n\n// 5. HTML Template with inline CSS\nconst htmlContent = `<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <title>Job Description - ${item.Posting_Title || item.Job_Opening_Name}</title>\n  <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n  <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\n  <link href=\"https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap\" rel=\"stylesheet\">\n  <style>\n    :root {\n      --primary: #1e3a8a;\n      --primary-light: #eff6ff;\n      --text-main: #1f2937;\n      --text-muted: #6b7280;\n      --bg-card: #f9fafb;\n      --border-color: #e5e7eb;\n    }\n    body {\n      font-family: 'Outfit', sans-serif;\n      color: var(--text-main);\n      line-height: 1.6;\n      margin: 0;\n      padding: 40px;\n      background-color: #ffffff;\n    }\n    .container {\n      max-width: 800px;\n      margin: 0 auto;\n    }\n    .header {\n      border-bottom: 3px solid var(--primary);\n      padding-bottom: 20px;\n      margin-bottom: 30px;\n    }\n    .header-meta {\n      font-size: 0.85rem;\n      color: var(--primary);\n      text-transform: uppercase;\n      font-weight: 700;\n      letter-spacing: 0.05em;\n      margin-bottom: 6px;\n    }\n    .job-title {\n      font-size: 2.25rem;\n      font-weight: 700;\n      margin: 0 0 8px 0;\n      color: #0f172a;\n    }\n    .meta-grid {\n      display: grid;\n      grid-template-columns: repeat(2, 1fr);\n      gap: 12px;\n      margin-bottom: 30px;\n    }\n    .meta-card {\n      background-color: var(--bg-card);\n      border: 1px solid var(--border-color);\n      border-radius: 8px;\n      padding: 12px 16px;\n    }\n    .meta-label {\n      font-size: 0.75rem;\n      font-weight: 600;\n      color: var(--text-muted);\n      text-transform: uppercase;\n      display: block;\n      margin-bottom: 4px;\n    }\n    .meta-value {\n      font-size: 0.95rem;\n      font-weight: 500;\n      color: #0f172a;\n    }\n    .section-title {\n      font-size: 1.15rem;\n      font-weight: 600;\n      color: var(--primary);\n      border-bottom: 1px solid var(--border-color);\n      padding-bottom: 6px;\n      margin-top: 32px;\n      margin-bottom: 16px;\n      text-transform: uppercase;\n      letter-spacing: 0.02em;\n    }\n    .description-content {\n      font-size: 0.95rem;\n    }\n    .description-content p {\n      margin-top: 0;\n      margin-bottom: 16px;\n    }\n    .description-content ul {\n      margin-top: 0;\n      margin-bottom: 16px;\n      padding-left: 20px;\n    }\n    .description-content li {\n      margin-bottom: 8px;\n    }\n    .skills-container {\n      display: flex;\n      flex-wrap: wrap;\n      gap: 8px;\n      margin-top: 12px;\n    }\n    .skill-pill {\n      background-color: var(--primary-light);\n      color: var(--primary);\n      font-size: 0.8rem;\n      font-weight: 600;\n      padding: 6px 12px;\n      border-radius: 9999px;\n      border: 1px solid #dbeafe;\n    }\n    .footer {\n      margin-top: 60px;\n      border-top: 1px solid var(--border-color);\n      padding-top: 16px;\n      text-align: center;\n      font-size: 0.75rem;\n      color: var(--text-muted);\n    }\n    @media print {\n      body {\n        padding: 0;\n      }\n      .meta-card {\n        page-break-inside: avoid;\n      }\n      .section-title {\n        page-break-after: avoid;\n      }\n    }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <div class=\"header-meta\">Job Reference ID: ${item.Job_Opening_ID || 'N/A'}</div>\n      <h1 class=\"job-title\">${item.Posting_Title || item.Job_Opening_Name}</h1>\n    </div>\n    \n    <div class=\"meta-grid\">\n      <div class=\"meta-card\">\n        <span class=\"meta-label\">Location</span>\n        <span class=\"meta-value\">${city}${country ? ', ' + country : ''}</span>\n      </div>\n      <div class=\"meta-card\">\n        <span class=\"meta-label\">Job Type</span>\n        <span class=\"meta-value\">${jobType}</span>\n      </div>\n      <div class=\"meta-card\">\n        <span class=\"meta-label\">Department</span>\n        <span class=\"meta-value\">${departmentName}</span>\n      </div>\n      <div class=\"meta-card\">\n        <span class=\"meta-label\">Salary Range</span>\n        <span class=\"meta-value\">${salary}</span>\n      </div>\n    </div>\n    \n    <div class=\"section-title\">About the Role</div>\n    <div class=\"description-content\">\n      ${descriptionHtml}\n    </div>\n    \n    <div class=\"section-title\">Key Requirements & Skills</div>\n    <div class=\"skills-container\">\n      ${skillsHtml}\n    </div>\n    \n    <div class=\"footer\">\n      Generated via YZEE Labs Recruitment Operations. Confidential & Proprietary.\n    </div>\n  </div>\n</body>\n</html>`;\n\nreturn [{\n  json: {\n    html: htmlContent,\n    filename: `Job_Description_${item.Job_Opening_ID || item.id}.pdf`\n  },\n  binary: {\n    data: {\n      data: Buffer.from(htmlContent).toString('base64'),\n      mimeType: 'text/html',\n      fileName: 'index.html'\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        100
+      ],
+      "id": "render-html-id",
+      "name": "Render HTML"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://gotenberg:3000/forms/chromium/convert/html",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "files",
+              "parameterType": "form-data-file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "responseFormat": "file",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        670,
+        100
+      ],
+      "id": "gotenberg-pdf-id",
+      "name": "Gotenberg - HTML to PDF"
+    },
+    {
+      "parameters": {
+        "fileName": "=/home/node/.n8n/reports/Job_Description_{{$('Zoho - Get Job Opening').item.json.data[0].Job_Opening_ID || $input.item.json.data[0].Job_Opening_ID}}.pdf",
+        "options": {
+          "append": false,
+          "fileWriteOption": "overwrite"
+        }
+      },
+      "type": "n8n-nodes-base.writeBinaryFile",
+      "typeVersion": 1,
+      "position": [
+        900,
+        100
+      ],
+      "id": "write-binary-file-id",
+      "name": "Save PDF to Disk"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Zoho - Refresh Access Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zoho - Refresh Access Token": {
+      "main": [
+        [
+          {
+            "node": "Zoho - Get Job Opening",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zoho - Get Job Opening": {
+      "main": [
+        [
+          {
+            "node": "Render HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Render HTML": {
+      "main": [
+        [
+          {
+            "node": "Gotenberg - HTML to PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gotenberg - HTML to PDF": {
+      "main": [
+        [
+          {
+            "node": "Save PDF to Disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "a56d0091-04ce-46b9-b1e1-88f6d5291d3e",
+  "activeVersionId": "a56d0091-04ce-46b9-b1e1-88f6d5291d3e",
+  "versionCounter": 1,
+  "triggerCount": 1,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-06-16T19:45:47.637Z",
+      "createdAt": "2026-06-16T19:45:47.637Z",
+      "role": "workflow:owner",
+      "workflowId": "zohoPdfGen1",
+      "projectId": "watVxhiyEGu7o6r1",
+      "project": {
+        "updatedAt": "2026-05-16T23:36:59.733Z",
+        "createdAt": "2026-05-16T23:33:23.057Z",
+        "id": "watVxhiyEGu7o6r1",
+        "name": "Alfredo Yciano <alfredohiciano13@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "a28a00c5-b0c8-43be-bdf6-fd02a41bbc63"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}

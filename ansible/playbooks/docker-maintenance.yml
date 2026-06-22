@@ -1,0 +1,20 @@
+---
+- name: Docker Maintenance Playbook
+  hosts: linux_servers
+  gather_facts: no
+  become: yes
+  tasks:
+    - name: Prune unused Docker images, containers, and networks
+      command: docker system prune -a --volumes -f
+      register: prune_output
+
+    - name: Output prune results
+      debug:
+        var: prune_output.stdout_lines
+
+    - name: Truncate Docker container log files larger than 50MB
+      shell: |
+        find /var/lib/docker/containers/ -name "*-json.log" -type f -size +50M -exec truncate -s 0 {} \;
+      args:
+        executable: /bin/bash
+      register: log_truncate_output

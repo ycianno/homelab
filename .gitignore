@@ -1,0 +1,31 @@
+# Secrets
+.env
+*.env
+*.key
+*.pem
+*.crt
+*.token
+*.secret
+scripts/hermes/config.json
+scripts/hermes/hermes_state.json
+
+# Runtime app data
+data/
+lib/
+cache/
+n8n_data/
+volumes/
+.terraform/
+*.tfstate
+*.tfstate.*
+
+# Logs
+*.log
+
+# OS/editor files
+.DS_Store
+.vscode/
+passwords.txt
+# Python bytecode
+__pycache__/
+*.py[cod]

@@ -1,0 +1,230 @@
+{
+  "updatedAt": "2026-06-05T00:44:46.000Z",
+  "createdAt": "2026-06-05T00:44:34.768Z",
+  "id": "zohoFieldsExtr1",
+  "name": "Zoho Recruit API Fields Extractor",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "zoho-api-fields-extractor",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -250,
+        100
+      ],
+      "id": "zoho-webhook-trigger-id",
+      "name": "Webhook"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://accounts.zoho.com/oauth/v2/token",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "grant_type",
+              "value": "refresh_token"
+            },
+            {
+              "name": "client_id",
+              "value": "1000.VUEE5FPBQ3Q8HHZULOI3PPMHWV599N"
+            },
+            {
+              "name": "client_secret",
+              "value": "148f2bb971057a918e053d9e69ab776c80499f6306"
+            },
+            {
+              "name": "refresh_token",
+              "value": "1000.40e4918369a51f8dc0a91a117adfee50.beaabcd8ac45a69bdcee545d406e65d2"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -50,
+        100
+      ],
+      "id": "zoho-refresh-token-id",
+      "name": "Zoho - Refresh Access Token"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  { json: { module: 'JobOpenings' } },\n  { json: { module: 'Applications' } },\n  { json: { module: 'Interviews' } },\n  { json: { module: 'Candidates' } },\n  { json: { module: 'Clients' } },\n  { json: { module: 'Hiring_Managers' } }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        150,
+        100
+      ],
+      "id": "set-modules-id",
+      "name": "Set Modules"
+    },
+    {
+      "parameters": {
+        "url": "=https://recruit.zoho.com/recruit/v2/settings/fields?module={{$json.module}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Zoho-oauthtoken {{$('Zoho - Refresh Access Token').first().json.access_token}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        350,
+        100
+      ],
+      "id": "zoho-get-fields-id",
+      "name": "Zoho - Get Fields",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "=https://recruit.zoho.com/recruit/v2/{{$('Set Modules').item.json.module}}?per_page=1",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Zoho-oauthtoken {{$('Zoho - Refresh Access Token').first().json.access_token}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        550,
+        100
+      ],
+      "id": "zoho-get-fallback-record-id",
+      "name": "Zoho - Get Fallback Record",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nlet markdown = \"# Zoho Recruit API Reference (Auto-Generated on \" + new Date().toISOString().split('T')[0] + \")\\n\\n\";\nmarkdown += \"This document provides the latest API field names and schemas retrieved directly from Zoho Recruit.\\n\\n\";\n\nfor (let i = 0; i < items.length; i++) {\n  const item = items[i];\n  const moduleName = $('Set Modules').itemMatching(i).json.module;\n  \n  markdown += \"## \" + (i + 1) + \". \" + moduleName + \" Module\\n\\n\";\n  \n  // Check if Zoho - Get Fields succeeded\n  const fieldsNode = $('Zoho - Get Fields').itemMatching(i);\n  const hasOfficialFields = fieldsNode && fieldsNode.json && Array.isArray(fieldsNode.json.fields);\n  \n  if (hasOfficialFields) {\n    markdown += \"| API Field Name | Display Label | Data Type | Mandatory | Custom |\\n\";\n    markdown += \"|---|---|---|---|---|\\n\";\n    for (const field of fieldsNode.json.fields) {\n      const apiName = field.api_name || '';\n      const label = field.field_label || '';\n      const type = field.json_type || '';\n      const mandatory = field.system_mandatory ? '✅ Yes' : 'No';\n      const custom = field.custom_field ? '✅ Yes' : 'No';\n      markdown += \"| `\" + apiName + \"` | \" + label + \" | \" + type + \" | \" + mandatory + \" | \" + custom + \" |\\n\";\n    }\n  } else {\n    // Use fallback record keys\n    const fallbackNode = $('Zoho - Get Fallback Record').itemMatching(i);\n    const hasRecord = fallbackNode && fallbackNode.json && Array.isArray(fallbackNode.json.data) && fallbackNode.json.data.length > 0;\n    \n    if (hasRecord) {\n      markdown += \"> [!NOTE]\\n\";\n      markdown += \"> This module was documented using the **Record Schema Fallback** because the settings API returned a scope mismatch.\\n\\n\";\n      markdown += \"| API Field Name | Sample Value / Structure | Data Type | Source |\\n\";\n      markdown += \"|---|---|---|---|\\n\";\n      \n      const record = fallbackNode.json.data[0];\n      const keys = Object.keys(record).sort();\n      \n      for (const key of keys) {\n        const val = record[key];\n        let typeStr = typeof val;\n        let sampleVal = '';\n        \n        if (val === null) {\n          typeStr = 'null';\n          sampleVal = '*null*';\n        } else if (Array.isArray(val)) {\n          typeStr = 'array (lookup)';\n          sampleVal = val.length > 0 ? JSON.stringify(val[0]) : '[]';\n        } else if (typeof val === 'object') {\n          typeStr = 'object (lookup)';\n          sampleVal = JSON.stringify(val);\n        } else {\n          sampleVal = String(val);\n        }\n        \n        if (sampleVal.length > 80) {\n          sampleVal = sampleVal.substring(0, 77) + '...';\n        }\n        \n        markdown += \"| `\" + key + \"` | `\" + sampleVal.replace(/\\|/g, '\\\\|') + \"` | \" + typeStr + \" | Fallback Key |\\n\";\n      }\n    } else {\n      markdown += \"❌ *Could not retrieve field data or records for this module.*\\n\\n\";\n      if (fieldsNode && fieldsNode.json && fieldsNode.json.message) {\n        markdown += \"Settings error: `\" + fieldsNode.json.message + \"`\\n\\n\";\n      }\n      if (fallbackNode && fallbackNode.json && fallbackNode.json.message) {\n        markdown += \"Records error: `\" + fallbackNode.json.message + \"`\\n\\n\";\n      }\n    }\n  }\n  \n  markdown += \"\\n---\\n\\n\";\n}\n\nmarkdown += \"*Generated by n8n Webhook Automation.*\";\n\nreturn [{ json: { markdown: markdown } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        750,
+        100
+      ],
+      "id": "generate-markdown-id",
+      "name": "Generate Markdown"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Zoho - Refresh Access Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zoho - Refresh Access Token": {
+      "main": [
+        [
+          {
+            "node": "Set Modules",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Modules": {
+      "main": [
+        [
+          {
+            "node": "Zoho - Get Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zoho - Get Fields": {
+      "main": [
+        [
+          {
+            "node": "Zoho - Get Fallback Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zoho - Get Fallback Record": {
+      "main": [
+        [
+          {
+            "node": "Generate Markdown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "b342efc0-d498-4c30-956b-e93caa8c1c8a",
+  "activeVersionId": "b342efc0-d498-4c30-956b-e93caa8c1c8a",
+  "versionCounter": 1,
+  "triggerCount": 1,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-06-05T00:44:34.782Z",
+      "createdAt": "2026-06-05T00:44:34.782Z",
+      "role": "workflow:owner",
+      "workflowId": "zohoFieldsExtr1",
+      "projectId": "watVxhiyEGu7o6r1",
+      "project": {
+        "updatedAt": "2026-05-16T23:36:59.733Z",
+        "createdAt": "2026-05-16T23:33:23.057Z",
+        "id": "watVxhiyEGu7o6r1",
+        "name": "Alfredo Yciano <alfredohiciano13@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "a28a00c5-b0c8-43be-bdf6-fd02a41bbc63"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}

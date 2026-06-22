@@ -1,0 +1,778 @@
+{
+  "updatedAt": "2026-06-22T03:28:14.925Z",
+  "createdAt": "2026-06-14T22:36:38.851Z",
+  "id": "interactiveContainerUpgrader",
+  "name": "Interactive Container Upgrader",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "watchtower-alert",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "wt-webhook-id",
+      "name": "Watchtower Alert Hook",
+      "webhookId": "watchtower-alert"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse the Shoutrrr generic webhook payload from Watchtower\nconst body = items[0].json.body || items[0].json;\nconst message = body.message || body.text || JSON.stringify(body);\nconst titleTag = body.title || 'unknown-host';\n\n// Watchtower report format includes lines like:\n// \"Updating container /container_name abc123 -> def456\"\n// \"Found new image for /container_name\"\nconst lines = message.split('\\n').filter(l => l.trim());\n\nconst updates = [];\nfor (const line of lines) {\n  // Match \"Updating /container_name\" pattern\n  const updateMatch = line.match(/(?:Updating|Updated)\\s+(?:container\\s+)?\\/?([\\w.-]+)/i);\n  if (updateMatch) {\n    updates.push({\n      container: updateMatch[1],\n      action: 'updated',\n      host: titleTag,\n      line: line.trim()\n    });\n    continue;\n  }\n  // Match \"Found new image for /container_name\" pattern  \n  const foundMatch = line.match(/Found new (?:image|release) for \\/?([\\w.-]+)/i);\n  if (foundMatch) {\n    updates.push({\n      container: foundMatch[1],\n      action: 'available',\n      host: titleTag,\n      line: line.trim()\n    });\n  }\n}\n\n// If no individual containers parsed, treat as raw notification\nif (updates.length === 0) {\n  updates.push({\n    container: 'unknown',\n    action: 'notification',\n    host: titleTag,\n    line: message.substring(0, 500)\n  });\n}\n\nreturn [{ json: { host: titleTag, updates, rawMessage: message } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        250,
+        0
+      ],
+      "id": "parse-watchtower-id",
+      "name": "Parse Watchtower Alert"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = items[0].json;\nconst host = data.host;\nconst updates = data.updates;\nconst rawMessage = data.rawMessage;\n\n// Homelab upgrade webhook (goes to #homelab-alerts channel)\nconst DISCORD_WEBHOOK = 'https://discord.com/api/webhooks/REDACTED/REDACTED';\nconst PUBLIC_HOOK_BASE = 'https://hooks.yourdomain.com/webhook';\n\n// Build container status lines\nconst containerLines = updates.map(u => {\n  if (u.action === 'updated') {\n    return `✅ **${u.container}** — auto-updated`;\n  } else if (u.action === 'available') {\n    return `🔔 **${u.container}** — new image available`;\n  } else {\n    return `ℹ️ ${u.line}`;\n  }\n}).join('\\n');\n\n// Check if any container needs manual upgrade\nconst pendingUpgrades = updates.filter(u => u.action === 'available');\nconst hasManualActions = pendingUpgrades.length > 0;\n\n// Build embed\nconst embed = {\n  title: `🐳 Container Updates — ${host}`,\n  color: hasManualActions ? 16750848 : 3066993,  // Orange if pending, Green if all auto\n  description: containerLines,\n  timestamp: new Date().toISOString(),\n  footer: { text: 'Watchtower → n8n Upgrader' }\n};\n\n// Add upgrade action fields for each pending container\nif (hasManualActions) {\n  embed.fields = pendingUpgrades.map(u => ({\n    name: `⚡ ${u.container}`,\n    value: `[🚀 Upgrade Now](${PUBLIC_HOOK_BASE}/trigger-upgrade?container=${encodeURIComponent(u.container)}&host=${encodeURIComponent(host)}) ┃ [✖️ Ignore](${PUBLIC_HOOK_BASE}/ignore-upgrade?container=${encodeURIComponent(u.container)}&host=${encodeURIComponent(host)})`,\n    inline: false\n  }));\n}\n\nreturn [{ json: {\n  webhookUrl: DISCORD_WEBHOOK + '?wait=true',\n  payload: { embeds: [embed] },\n  hasManualActions,\n  pendingUpgrades,\n  host\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        0
+      ],
+      "id": "build-discord-embed-id",
+      "name": "Build Discord Embed"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.webhookUrl }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.payload) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        750,
+        0
+      ],
+      "id": "post-discord-alert-id",
+      "name": "Post Discord Alert"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Capture the Discord message ID from the ?wait=true response\nconst discordResponse = items[0].json;\nconst messageId = discordResponse.id;\n\n// Now PATCH the original embed to inject the message ID into the upgrade links\n// This is needed so the trigger-upgrade webhook knows which message to update\nconst prevData = $('Build Discord Embed').first().json;\nconst host = prevData.host;\nconst pendingUpgrades = prevData.pendingUpgrades || [];\nconst PUBLIC_HOOK_BASE = 'https://hooks.yourdomain.com/webhook';\n\nif (pendingUpgrades.length > 0 && messageId) {\n  // Rebuild fields with msgId now included\n  const updatedFields = pendingUpgrades.map(u => ({\n    name: `⚡ ${u.container}`,\n    value: `[🚀 Upgrade Now](${PUBLIC_HOOK_BASE}/trigger-upgrade?container=${encodeURIComponent(u.container)}&host=${encodeURIComponent(host)}&msgId=${messageId}) ┃ [✖️ Ignore](${PUBLIC_HOOK_BASE}/ignore-upgrade?container=${encodeURIComponent(u.container)}&host=${encodeURIComponent(host)}&msgId=${messageId})`,\n    inline: false\n  }));\n\n  // Build the patched embed\n  const originalEmbed = prevData.payload.embeds[0];\n  originalEmbed.fields = updatedFields;\n\n  return [{ json: {\n    messageId,\n    patchUrl: prevData.webhookUrl.replace('?wait=true', '') + '/messages/' + messageId,\n    patchPayload: { embeds: [originalEmbed] },\n    needsPatch: true\n  }}];\n}\n\nreturn [{ json: { messageId, needsPatch: false } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        0
+      ],
+      "id": "capture-msg-id",
+      "name": "Capture Message ID & Patch Links"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "patch-check",
+              "leftValue": "={{ $json.needsPatch }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals",
+                "name": "filter.boolean.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1250,
+        0
+      ],
+      "id": "if-needs-patch-id",
+      "name": "Needs Patch?"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $json.patchUrl }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.patchPayload) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1500,
+        -100
+      ],
+      "id": "patch-discord-links-id",
+      "name": "Patch Discord Links with MsgId"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "OK",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1750,
+        0
+      ],
+      "id": "respond-wt-ok-id",
+      "name": "Respond OK to Watchtower"
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "trigger-upgrade",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        400
+      ],
+      "id": "trigger-upgrade-hook-id",
+      "name": "Trigger Upgrade Hook",
+      "webhookId": "trigger-upgrade"
+    },
+    {
+      "parameters": {
+        "jsCode": "const query = items[0].json.query || $input.first().json.query || {};\nconst container = query.container || 'unknown';\nconst host = query.host || 'unknown';\nconst msgId = query.msgId || '';\n\n// Map container names to stack names and paths\n// This mapping defines which Semaphore template and extra vars to use\nconst STACK_MAP = {\n  // automation-01 stacks\n  'n8n': { stack: 'n8n', host: 'automation-01', path: '/opt/stacks/n8n' },\n  'semaphore': { stack: 'semaphore', host: 'automation-01', path: '/opt/stacks/semaphore' },\n  'forgejo': { stack: 'forgejo', host: 'automation-01', path: '/opt/stacks/forgejo' },\n  'portainer': { stack: 'portainer', host: 'automation-01', path: '/opt/stacks/portainer' },\n  'uptime-kuma': { stack: 'uptime-kuma', host: 'automation-01', path: '/opt/stacks/uptime-kuma' },\n  'homepage': { stack: 'homepage', host: 'automation-01', path: '/opt/stacks/homepage' },\n  'nginx-proxy-manager': { stack: 'nginx-proxy-manager', host: 'automation-01', path: '/opt/stacks/nginx-proxy-manager' },\n  'netdata': { stack: 'netdata', host: 'automation-01', path: '/opt/stacks/netdata' },\n  // docker-01 stacks\n  'nextcloud-app': { stack: 'nextcloud', host: 'docker-01', path: '/opt/nextcloud-clean' },\n  'nextcloud-redis': { stack: 'nextcloud', host: 'docker-01', path: '/opt/nextcloud-clean' },\n  'nextcloud-db': { stack: 'nextcloud', host: 'docker-01', path: '/opt/nextcloud-clean' },\n  'dozzle': { stack: 'dozzle', host: 'docker-01', path: '/opt/stacks/dozzle' },\n  'cloudflared': { stack: 'cloudflared', host: 'docker-01', path: '/opt/stacks/cloudflared' },\n  'portainer_agent': { stack: 'portainer-agent', host: 'docker-01', path: '/opt/stacks/portainer-agent' },\n};\n\nconst mapping = STACK_MAP[container] || { stack: container, host: host, path: `/opt/stacks/${container}` };\n\nreturn [{ json: {\n  container,\n  host,\n  msgId,\n  stackName: mapping.stack,\n  targetHost: mapping.host,\n  stackPath: mapping.path\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        250,
+        400
+      ],
+      "id": "resolve-stack-id",
+      "name": "Resolve Stack Mapping"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://discord.com/api/webhooks/REDACTED/REDACTED/messages/{{ $json.msgId }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ embeds: [{ title: '⏳ Upgrading — ' + $json.container, description: 'Upgrade triggered for **' + $json.stackName + '** on `' + $json.targetHost + '`\\n\\nSemaphore playbook is running...', color: 16776960, timestamp: new Date().toISOString(), footer: { text: 'Watchtower → n8n Upgrader' } }] }) }}",
+        "options": {}
+      },
+      "onError": "continueRegularOutput",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        500,
+        400
+      ],
+      "id": "patch-upgrading-id",
+      "name": "Patch Discord: Upgrading"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://10.0.0.67:3005/api/project/1/tasks",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ template_id: 4, debug: false, diff: false, dry_run: false, environment: '{\\\"stack_name\\\": \\\"' + $('Resolve Stack Mapping').first().json.stackName + '\\\", \\\"stack_path\\\": \\\"' + $('Resolve Stack Mapping').first().json.stackPath + '\\\", \\\"limit_hosts\\\": \\\"' + $('Resolve Stack Mapping').first().json.targetHost + '\\\"}', limit: $('Resolve Stack Mapping').first().json.targetHost }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        750,
+        400
+      ],
+      "id": "trigger-semaphore-id",
+      "name": "Trigger Semaphore Upgrade",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "tON69VtcHcXVXQUb",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract the Semaphore task ID from the API response\nconst taskResponse = items[0].json;\nconst taskId = taskResponse.id;\nconst prevData = $('Resolve Stack Mapping').first().json;\n\nreturn [{ json: {\n  semaphoreTaskId: taskId,\n  container: prevData.container,\n  host: prevData.host,\n  msgId: prevData.msgId,\n  stackName: prevData.stackName,\n  targetHost: prevData.targetHost,\n  pollCount: 0\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        400
+      ],
+      "id": "extract-task-id",
+      "name": "Extract Semaphore Task ID"
+    },
+    {
+      "parameters": {
+        "amount": 15,
+        "unit": "seconds"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1250,
+        400
+      ],
+      "id": "wait-poll-id",
+      "name": "Wait 15s"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://10.0.0.67:3005/api/project/1/tasks/{{ $json.semaphoreTaskId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1500,
+        400
+      ],
+      "id": "poll-semaphore-id",
+      "name": "Poll Semaphore Task Status",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "tON69VtcHcXVXQUb",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const taskStatus = items[0].json;\nconst prevData = $('Extract Semaphore Task ID').first().json;\nconst status = taskStatus.status;\n\n// Semaphore statuses: 'waiting', 'running', 'success', 'error', 'stopped'\nconst isComplete = ['success', 'error', 'stopped'].includes(status);\nconst pollCount = (prevData.pollCount || 0) + 1;\nconst maxPolls = 40; // 40 * 15s = 10 min max wait\n\nreturn [{ json: {\n  ...prevData,\n  status,\n  isComplete: isComplete || pollCount >= maxPolls,\n  isSuccess: status === 'success',\n  pollCount\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1750,
+        400
+      ],
+      "id": "check-status-id",
+      "name": "Check Task Status"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "complete-check",
+              "leftValue": "={{ $json.isComplete }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals",
+                "name": "filter.boolean.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2000,
+        400
+      ],
+      "id": "if-complete-id",
+      "name": "Task Complete?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "success-check",
+              "leftValue": "={{ $json.isSuccess }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals",
+                "name": "filter.boolean.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2250,
+        300
+      ],
+      "id": "if-success-id",
+      "name": "Upgrade Success?"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://discord.com/api/webhooks/REDACTED/REDACTED/messages/{{ $json.msgId }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ embeds: [{ title: '✅ Upgrade Successful — ' + $json.container, description: '**' + $json.stackName + '** on `' + $json.targetHost + '` has been upgraded successfully!\\n\\n🧹 Dangling images pruned.', color: 3066993, timestamp: new Date().toISOString(), footer: { text: 'Watchtower → n8n Upgrader' } }] }) }}",
+        "options": {}
+      },
+      "onError": "continueRegularOutput",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2500,
+        200
+      ],
+      "id": "patch-success-id",
+      "name": "Patch Discord: Success"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://discord.com/api/webhooks/REDACTED/REDACTED/messages/{{ $json.msgId }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ embeds: [{ title: '❌ Upgrade Failed — ' + $json.container, description: '**' + $json.stackName + '** on `' + $json.targetHost + '` failed to upgrade.\\n\\nSemaphore status: `' + $json.status + '`\\n\\nCheck the Semaphore UI for logs.', color: 15158332, timestamp: new Date().toISOString(), footer: { text: 'Watchtower → n8n Upgrader' } }] }) }}",
+        "options": {}
+      },
+      "onError": "continueRegularOutput",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2500,
+        500
+      ],
+      "id": "patch-failure-id",
+      "name": "Patch Discord: Failure"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=<html><body style='font-family:Inter,sans-serif;background:#1a1a2e;color:#e0e0e0;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;'><div style='text-align:center;padding:40px;background:#16213e;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.4);'><h2 style='color:#00d4aa;'>🚀 Upgrade Initiated</h2><p><strong>{{ $json.stackName }}</strong> on <code>{{ $json.targetHost }}</code></p><p style='color:#888;'>You can close this tab now.</p></div></body></html>",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        500,
+        600
+      ],
+      "id": "respond-upgrade-html-id",
+      "name": "Respond: Upgrade HTML Page"
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "ignore-upgrade",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        800
+      ],
+      "id": "ignore-hook-id",
+      "name": "Ignore Upgrade Hook",
+      "webhookId": "ignore-upgrade"
+    },
+    {
+      "parameters": {
+        "jsCode": "const query = items[0].json.query || $input.first().json.query || {};\nconst container = query.container || 'unknown';\nconst host = query.host || 'unknown';\nconst msgId = query.msgId || '';\n\nreturn [{ json: { container, host, msgId } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        250,
+        800
+      ],
+      "id": "parse-ignore-id",
+      "name": "Parse Ignore Params"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://discord.com/api/webhooks/REDACTED/REDACTED/messages/{{ $json.msgId }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ embeds: [{ title: '⏭️ Upgrade Skipped — ' + $json.container, description: 'Update for **' + $json.container + '** on `' + $json.host + '` was ignored.', color: 9807270, timestamp: new Date().toISOString(), footer: { text: 'Watchtower → n8n Upgrader' } }] }) }}",
+        "options": {}
+      },
+      "onError": "continueRegularOutput",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        500,
+        800
+      ],
+      "id": "patch-ignored-id",
+      "name": "Patch Discord: Ignored"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=<html><body style='font-family:Inter,sans-serif;background:#1a1a2e;color:#e0e0e0;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;'><div style='text-align:center;padding:40px;background:#16213e;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.4);'><h2 style='color:#9b9b9b;'>⏭️ Update Ignored</h2><p><strong>{{ $json.container }}</strong> on <code>{{ $json.host }}</code></p><p style='color:#888;'>You can close this tab now.</p></div></body></html>",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        750,
+        800
+      ],
+      "id": "respond-ignore-html-id",
+      "name": "Respond: Ignore HTML Page"
+    }
+  ],
+  "connections": {
+    "Watchtower Alert Hook": {
+      "main": [
+        [
+          {
+            "node": "Parse Watchtower Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Watchtower Alert": {
+      "main": [
+        [
+          {
+            "node": "Build Discord Embed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Discord Embed": {
+      "main": [
+        [
+          {
+            "node": "Post Discord Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post Discord Alert": {
+      "main": [
+        [
+          {
+            "node": "Capture Message ID & Patch Links",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Capture Message ID & Patch Links": {
+      "main": [
+        [
+          {
+            "node": "Needs Patch?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs Patch?": {
+      "main": [
+        [
+          {
+            "node": "Patch Discord Links with MsgId",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond OK to Watchtower",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Patch Discord Links with MsgId": {
+      "main": [
+        [
+          {
+            "node": "Respond OK to Watchtower",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger Upgrade Hook": {
+      "main": [
+        [
+          {
+            "node": "Resolve Stack Mapping",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolve Stack Mapping": {
+      "main": [
+        [
+          {
+            "node": "Respond: Upgrade HTML Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond: Upgrade HTML Page": {
+      "main": [
+        [
+          {
+            "node": "Patch Discord: Upgrading",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Patch Discord: Upgrading": {
+      "main": [
+        [
+          {
+            "node": "Trigger Semaphore Upgrade",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger Semaphore Upgrade": {
+      "main": [
+        [
+          {
+            "node": "Extract Semaphore Task ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Semaphore Task ID": {
+      "main": [
+        [
+          {
+            "node": "Wait 15s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 15s": {
+      "main": [
+        [
+          {
+            "node": "Poll Semaphore Task Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Poll Semaphore Task Status": {
+      "main": [
+        [
+          {
+            "node": "Check Task Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Task Status": {
+      "main": [
+        [
+          {
+            "node": "Task Complete?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Task Complete?": {
+      "main": [
+        [
+          {
+            "node": "Upgrade Success?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait 15s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upgrade Success?": {
+      "main": [
+        [
+          {
+            "node": "Patch Discord: Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Patch Discord: Failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ignore Upgrade Hook": {
+      "main": [
+        [
+          {
+            "node": "Parse Ignore Params",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Ignore Params": {
+      "main": [
+        [
+          {
+            "node": "Respond: Ignore HTML Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond: Ignore HTML Page": {
+      "main": [
+        [
+          {
+            "node": "Patch Discord: Ignored",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "c0f7d312-5258-4ea1-821b-348bd5a38663",
+  "activeVersionId": "c0f7d312-5258-4ea1-821b-348bd5a38663",
+  "versionCounter": 10,
+  "triggerCount": 3,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-06-14T22:36:38.869Z",
+      "createdAt": "2026-06-14T22:36:38.869Z",
+      "role": "workflow:owner",
+      "workflowId": "interactiveContainerUpgrader",
+      "projectId": "watVxhiyEGu7o6r1",
+      "project": {
+        "updatedAt": "2026-05-16T23:36:59.733Z",
+        "createdAt": "2026-05-16T23:33:23.057Z",
+        "id": "watVxhiyEGu7o6r1",
+        "name": "Alfredo Yciano <alfredohiciano13@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "a28a00c5-b0c8-43be-bdf6-fd02a41bbc63"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}
