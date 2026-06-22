@@ -58,6 +58,8 @@ def replace_private_domain(root: Path) -> int:
     for path in root.rglob("*"):
         if not path.is_file() or ".git" in path.parts:
             continue
+        if path.name == ".env" or path.name.endswith(".env"):
+            continue
         try:
             content = path.read_text(encoding="utf-8")
         except (UnicodeDecodeError, OSError):
