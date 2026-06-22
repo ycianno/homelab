@@ -55,6 +55,7 @@ The current backup posture is a known engineering gap. A successful command, sch
 | --- | --- | --- |
 | Critical | Proxmox backup target is disabled; recent scheduled jobs failed | Restore a separate backup destination, produce fresh guest dumps, and test recovery |
 | High | Backups share local failure domains and Mac/iCloud retention handling is incomplete | Add independent storage, fix retention verification, and document recovery procedures |
+| High | Supavisor uses a sample tenant ID and its `pgbouncer` database credential is mismatched | Configure a real tenant, synchronize the database role password, and verify session and transaction pool ports |
 | High | `security-01` did not have Proxmox autostart enabled at review time | Enable startup ordering and verify the security plane returns after host reboot |
 | Medium | Pi-hole is used by selected systems rather than the full network | Decide whether to make it authoritative for the LAN or document the intentionally mixed DNS model |
 | Medium | Open WebUI depends on a workstation-hosted Ollama endpoint | Add a continuously available model host or accept/document intermittent availability |

@@ -44,7 +44,7 @@ The self-hosted Supabase development platform currently runs thirteen containers
 
 | Capability | Supabase components |
 | --- | --- |
-| Database and pooling | PostgreSQL, Supavisor |
+| Database and pooling | PostgreSQL; Supavisor is deployed but pooled connections are currently degraded |
 | API gateway and REST | Kong, PostgREST |
 | Identity | GoTrue Auth |
 | Object storage and images | Storage API, imgproxy |
