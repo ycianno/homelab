@@ -110,7 +110,7 @@
     - The Forge:
         href: https://life.yourdomain.com
         description: Personal organization and control panel
-        icon: openhab.png
+        icon: the-forge.png
         server: my-docker
         container: life-control-center
         siteMonitor: https://life.yourdomain.com
@@ -148,28 +148,17 @@
         description: SIEM-IPS Console Dashboard
         icon: crowdsec.png
 
-- "Vitrina Ecosystem │ BudgetNote Ecosystem":
+- Vitrina Ecosystem:
     - "◆ Vitrina (Live)":
         href: https://vitrina.do
         description: Production landing page
         icon: https://vitrina.do/branding/vitrina-logo-icon-192.png
         siteMonitor: https://vitrina.do
 
-    - "◆ BudgetNote (Live)":
-        href: https://budgetnote.net
-        description: Production landing page
-        icon: https://www.budgetnote.net/logo.png
-        siteMonitor: https://budgetnote.net
-
     - Vitrina Prod DB:
         href: https://supabase.com/dashboard/project/vrbxqhmltpufuvhoitdy
         description: Supabase Production
         icon: supabase.png
-
-    - Microsoft Store:
-        href: https://apps.microsoft.com/detail/9mtdzfv24k82?hl=en-US&gl=DO
-        description: BudgetNote store listing
-        icon: microsoft.png
 
     - Vitrina Dev DB:
         href: https://supabase.local.yourdomain.com
@@ -177,19 +166,9 @@
         icon: supabase.png
         siteMonitor: https://supabase.local.yourdomain.com
 
-    - Partner Center:
-        href: https://partner.microsoft.com/en-us/dashboard/products/9MTDZFV24K82/overview
-        description: BudgetNote Partner dashboard
-        icon: microsoft.png
-
     - Vitrina Vercel:
         href: https://vercel.com/yciannos-projects/vitrina
         description: Frontend deployment
-        icon: vercel.png
-
-    - BudgetNote Vercel:
-        href: https://vercel.com/yciannos-projects/landing-getbud
-        description: Landing page deployment
         icon: vercel.png
 
     - Vitrina Render:
@@ -197,22 +176,44 @@
         description: Backend hosting
         icon: render.png
 
-    - Lemon Squeezy:
-        href: https://app.lemonsqueezy.com
-        description: BudgetNote payments & licensing
-        icon: lemonsqueezy.png
-
     - PostHog:
         href: https://us.posthog.com/project/330698/dashboard/1328442
         description: Vitrina product analytics
         icon: posthog.png
 
-    - MailerSend:
-        href: https://app.mailersend.com/dashboard
-        description: BudgetNote transactional email
-        icon: mailersend.png
-
     - Resend:
         href: https://resend.com/emails
         description: Vitrina transactional email
         icon: resend.png
+
+- BudgetNote Ecosystem:
+    - "◆ BudgetNote (Live)":
+        href: https://budgetnote.net
+        description: Production landing page
+        icon: https://www.budgetnote.net/logo.png
+        siteMonitor: https://budgetnote.net
+
+    - Microsoft Store:
+        href: https://apps.microsoft.com/detail/9mtdzfv24k82?hl=en-US&gl=DO
+        description: BudgetNote store listing
+        icon: microsoft.png
+
+    - Partner Center:
+        href: https://partner.microsoft.com/en-us/dashboard/products/9MTDZFV24K82/overview
+        description: BudgetNote Partner dashboard
+        icon: microsoft.png
+
+    - BudgetNote Vercel:
+        href: https://vercel.com/yciannos-projects/landing-getbud
+        description: Landing page deployment
+        icon: vercel.png
+
+    - Lemon Squeezy:
+        href: https://app.lemonsqueezy.com
+        description: BudgetNote payments & licensing
+        icon: lemonsqueezy.png
+
+    - MailerSend:
+        href: https://app.mailersend.com/dashboard
+        description: BudgetNote transactional email
+        icon: mailersend.png

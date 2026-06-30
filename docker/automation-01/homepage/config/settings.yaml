@@ -30,6 +30,9 @@ layout:
   Security:
     style: row
     columns: 2
-  "Vitrina Ecosystem │ BudgetNote Ecosystem":
+  Vitrina Ecosystem:
     style: row
     columns: 4
+  BudgetNote Ecosystem:
+    style: row
+    columns: 3

@@ -4,30 +4,39 @@
 /* Apply modern font and clean background gradient */
 body {
   font-family: 'Outfit', sans-serif !important;
-  background: radial-gradient(circle at top right, rgba(30, 27, 75, 0.4), transparent),
-              radial-gradient(circle at bottom left, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 1)) !important;
+  background: radial-gradient(circle at 50% 0%, rgba(20, 20, 35, 0.85), rgba(8, 8, 12, 1)) !important;
+  background-attachment: fixed !important;
 }
 
-/* Glassmorphism style for homepage cards */
-[class*="card"], .card {
-  background: rgba(30, 41, 59, 0.3) !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.05) !important;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3) !important;
+/* True dark mode glassmorphism card styling */
+.card,
+[class*="card"],
+.grid > div[class*="bg-"],
+div[class*="w-full"][class*="bg-"] {
+  background-color: rgba(9, 9, 11, 0.55) !important; /* Translucent deep black */
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important; /* Clean glass border */
+  box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.06),
+              0 8px 32px 0 rgba(0, 0, 0, 0.6) !important; /* Dark drop shadow & inner shine */
+  border-radius: 12px !important;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
-/* Card hover animation and glowing borders */
-[class*="card"]:hover, .card:hover {
-  background: rgba(30, 41, 59, 0.55) !important;
-  border-color: rgba(99, 102, 241, 0.4) !important; /* Subtle indigo glow */
+/* Glass card hover state with glowing outline and scale animation */
+.card:hover,
+[class*="card"]:hover,
+.grid > div[class*="bg-"]:hover,
+div[class*="w-full"][class*="bg-"]:hover {
+  background-color: rgba(14, 14, 20, 0.75) !important;
+  border-color: rgba(99, 102, 241, 0.55) !important; /* Glowing indigo border */
   transform: translateY(-2px) !important;
-  box-shadow: 0 12px 40px 0 rgba(99, 102, 241, 0.15) !important;
+  box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.12),
+              0 16px 36px 0 rgba(99, 102, 241, 0.2) !important; /* Glow shadow */
 }
 
 /* Make status indicator dots glow dynamically based on status color */
 [class*="status-dot"], .status-dot, [class*="statusStyle"] {
-  box-shadow: 0 0 8px currentColor !important;
+  box-shadow: 0 0 10px currentColor !important;
   transition: all 0.3s ease !important;
 }
