@@ -110,7 +110,7 @@
     - The Forge:
         href: https://life.yourdomain.com
         description: Personal organization and control panel
-        icon: /images/the-forge.png
+        icon: /icons/the-forge.png
         server: my-docker
         container: life-control-center
         siteMonitor: https://life.yourdomain.com

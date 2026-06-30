@@ -33,6 +33,7 @@ layout:
   "SaaS Ecosystems":
     style: row
     columns: 2
+    header: false
   "Vitrina Ecosystem":
     style: row
     columns: 2
