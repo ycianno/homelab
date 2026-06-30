@@ -11,12 +11,12 @@
 
 - Core Automation:
     - n8n:
-        href: http://10.0.0.67:5678
+        href: https://n8n.local.yourdomain.com
         description: Workflow automation engine
         icon: n8n.png
         server: my-docker
         container: n8n
-        siteMonitor: http://10.0.0.67:5678
+        siteMonitor: https://n8n.local.yourdomain.com
 
     - Uptime Kuma:
         href: https://kuma.local.yourdomain.com
