@@ -15,11 +15,11 @@
       timeStyle: short
 
 - docker:
-    socket: /var/run/docker.sock
+    host: my-docker
     label: Containers
 
-- weather:
-    provider: metno
+- openmeteo:
+    label: "Santo Domingo Este"
     latitude: 18.4884
     longitude: -69.8571
     units: metric
