@@ -6,6 +6,8 @@ It is an infrastructure portfolio and operating record—not a turnkey distribut
 
 > Observed state was last reconciled against the running environment on **2026-06-21**. Planned work is labeled separately from deployed state.
 
+![YZEE Labs Dashboard](docs/images/dashboard.png)
+
 ## What is being built
 
 The environment separates management services, application workloads, data services, and security tooling across Proxmox guests. This keeps the control plane available when an application host is being maintained and gives security telemetry its own resource boundary.
