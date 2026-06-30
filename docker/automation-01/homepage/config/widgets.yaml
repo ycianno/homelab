@@ -14,10 +14,6 @@
       dateStyle: short
       timeStyle: short
 
-- docker:
-    host: my-docker
-    label: Containers
-
 - openmeteo:
     label: "Santo Domingo Este"
     latitude: 18.4884
