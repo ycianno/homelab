@@ -13,3 +13,14 @@
     format:
       dateStyle: short
       timeStyle: short
+
+- docker:
+    socket: /var/run/docker.sock
+    label: Containers
+
+- weather:
+    provider: metno
+    latitude: 18.4884
+    longitude: -69.8571
+    units: metric
+    cache: 30

@@ -1,0 +1,33 @@
+/* Import Outfit font from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+
+/* Apply modern font and clean background gradient */
+body {
+  font-family: 'Outfit', sans-serif !important;
+  background: radial-gradient(circle at top right, rgba(30, 27, 75, 0.4), transparent),
+              radial-gradient(circle at bottom left, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 1)) !important;
+}
+
+/* Glassmorphism style for homepage cards */
+[class*="card"], .card {
+  background: rgba(30, 41, 59, 0.3) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Card hover animation and glowing borders */
+[class*="card"]:hover, .card:hover {
+  background: rgba(30, 41, 59, 0.55) !important;
+  border-color: rgba(99, 102, 241, 0.4) !important; /* Subtle indigo glow */
+  transform: translateY(-2px) !important;
+  box-shadow: 0 12px 40px 0 rgba(99, 102, 241, 0.15) !important;
+}
+
+/* Make status indicator dots glow dynamically based on status color */
+[class*="status-dot"], .status-dot, [class*="statusStyle"] {
+  box-shadow: 0 0 8px currentColor !important;
+  transition: all 0.3s ease !important;
+}

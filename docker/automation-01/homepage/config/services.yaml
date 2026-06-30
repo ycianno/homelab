@@ -87,12 +87,18 @@
         description: Live metrics for automation server
         icon: netdata.png
         siteMonitor: https://netdata-auto.local.yourdomain.com
+        widget:
+          type: netdata
+          url: https://netdata-auto.local.yourdomain.com
 
     - Netdata docker-01:
         href: https://netdata-docker.local.yourdomain.com
         description: Live metrics for Docker app server
         icon: netdata.png
         siteMonitor: https://netdata-docker.local.yourdomain.com
+        widget:
+          type: netdata
+          url: https://netdata-docker.local.yourdomain.com
 
     - Router / Network:
         href: http://10.0.0.1
@@ -101,7 +107,7 @@
 
 - Tools:
 
-    - Life Control Center:
+    - The Forge:
         href: https://life.yourdomain.com
         description: Personal organization and control panel
         icon: openhab.png

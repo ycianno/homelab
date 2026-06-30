@@ -27,9 +27,9 @@ layout:
   Tools:
     style: row
     columns: 2
-  Vitrina Ecosystem:
+  Security:
+    style: row
+    columns: 2
+  "Vitrina Ecosystem │ BudgetNote Ecosystem":
     style: row
     columns: 4
-  BudgetNote Ecosystem:
-    style: row
-    columns: 3
