@@ -33,7 +33,8 @@ resource "proxmox_virtual_environment_container" "pihole_01" {
     }
   }
   operating_system {
-    type = "ubuntu"
+    type             = "ubuntu"
+    template_file_id = "local:vztmpl/ubuntu-24.04-standard_24.04-2_amd64.tar.zst"
   }
 }
 
