@@ -18,7 +18,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const body = items[0].json.body || items[0].json;\nconst monitor = body.monitor || {};\nconst heartbeat = body.heartbeat || {};\nconst msg = body.msg || \"\";\n\n// Uptime Kuma status: 0 = DOWN, 1 = UP. Remediation only runs on DOWN events.\nconst isDown = heartbeat.status === 0 || msg.includes(\"DOWN\");\n\nlet stackName = \"\";\nlet targetHost = \"\";\nlet shouldTrigger = false;\n\nif (isDown && monitor.name) {\n  const monitorName = monitor.name;\n  switch (monitorName) {\n    case \"Nextcloud\":\n      stackName = \"nextcloud\";\n      targetHost = \"docker-01\";\n      shouldTrigger = true;\n      break;\n    case \"Dozzle\":\n      stackName = \"dozzle\";\n      targetHost = \"docker-01\";\n      shouldTrigger = true;\n      break;\n    case \"n8n\":\n      stackName = \"n8n\";\n      targetHost = \"automation-01\";\n      shouldTrigger = true;\n      break;\n    case \"Semaphore\":\n      stackName = \"semaphore\";\n      targetHost = \"automation-01\";\n      shouldTrigger = true;\n      break;\n    case \"Portainer Agent\":\n      stackName = \"portainer-agent\";\n      targetHost = \"docker-01\";\n      shouldTrigger = true;\n      break;\n    case \"Homepage\":\n      stackName = \"homepage\";\n      targetHost = \"automation-01\";\n      shouldTrigger = true;\n      break;\n    default:\n      break;\n  }\n}\n\nreturn [\n  {\n    json: {\n      isDown,\n      monitorName: monitor.name || \"Unknown\",\n      stackName,\n      targetHost,\n      shouldTrigger,\n      msg\n    }\n  }\n];"
+        "jsCode": "const body = items[0].json.body || items[0].json;\nconst monitor = body.monitor || {};\nconst heartbeat = body.heartbeat || {};\nconst msg = body.msg || \"\";\n\n// Uptime Kuma status: 0 = DOWN, 1 = UP. Remediation only runs on DOWN events.\nconst isDown = heartbeat.status === 0 || msg.includes(\"DOWN\");\n\nlet serviceName = \"\";\nlet targetHost = \"\";\nlet shouldTrigger = false;\n\nif (isDown && monitor.name) {\n  const monitorName = monitor.name;\n  switch (monitorName) {\n    case \"Nextcloud\":\n      serviceName = \"nextcloud-app\";\n      targetHost = \"docker-01\";\n      shouldTrigger = true;\n      break;\n    case \"Dozzle\":\n      serviceName = \"dozzle\";\n      targetHost = \"docker-01\";\n      shouldTrigger = true;\n      break;\n    case \"n8n\":\n      serviceName = \"n8n\";\n      targetHost = \"automation-01\";\n      shouldTrigger = true;\n      break;\n    case \"Semaphore\":\n      serviceName = \"semaphore\";\n      targetHost = \"automation-01\";\n      shouldTrigger = true;\n      break;\n    case \"Portainer Agent\":\n      serviceName = \"portainer_agent\";\n      targetHost = \"docker-01\";\n      shouldTrigger = true;\n      break;\n    case \"Homepage\":\n      serviceName = \"homepage\";\n      targetHost = \"automation-01\";\n      shouldTrigger = true;\n      break;\n    default:\n      break;\n  }\n}\n\nreturn [\n  {\n    json: {\n      isDown,\n      monitorName: monitor.name || \"Unknown\",\n      serviceName,\n      targetHost,\n      shouldTrigger,\n      msg\n    }\n  }\n];"
       },
       "id": "js-mapping",
       "name": "Map Monitor to Stack & Host",
@@ -57,7 +57,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\"template_id\":4,\"debug\":false,\"dry_run\":false,\"environment\":\"{\\\"stack_name\\\":\\\"\" + $json.stackName + \"\\\"}\",\"limit\":\"\" + $json.targetHost + \"\"}",
+        "jsonBody": "={\"template_id\":12,\"debug\":false,\"dry_run\":false,\"environment\":\"{\\\"service_name\\\":\\\"\" + $json.serviceName + \"\\\"}\",\"limit\":\"\" + $json.targetHost + \"\"}",
         "options": {}
       },
       "id": "http-semaphore-trigger",
@@ -78,7 +78,7 @@
     {
       "parameters": {
         "authentication": "webhook",
-        "content": "=🚨 **Uptime Kuma Auto-Remediation Triggered**\n- **Service DOWN:** `{{ $json.monitorName }}`\n- **Ansible Action:** Re-deploying stack `{{ $json.stackName }}` on host `{{ $json.targetHost }}` via Semaphore template ID 4.\n- **Status Message:** `{{ $json.msg }}`",
+        "content": "=\ud83d\udea8 **Uptime Kuma Auto-Remediation Triggered**\n- **Service DOWN:** `{{ $json.monitorName }}`\n- **Ansible Action:** Restarting container `{{ $json.serviceName }}` on host `{{ $json.targetHost }}` via Semaphore template ID 12.\n- **Status Message:** `{{ $json.msg }}`",
         "options": {}
       },
       "id": "discord-remediation-alert",
