@@ -1,0 +1,9 @@
+---
+- name: Restart Service
+  hosts: docker_servers
+  become: yes
+  vars:
+    service_name: ""
+  tasks:
+    - name: Restart target docker container
+      command: "docker restart {{ service_name }}"
