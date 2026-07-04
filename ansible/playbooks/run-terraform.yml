@@ -8,6 +8,9 @@
         project_path: "{{ playbook_dir }}/../../hypervisor/proxmox/terraform"
         state: present
         force_init: true
+        variables:
+          proxmox_endpoint: "{{ proxmox_endpoint }}"
+          proxmox_api_token: "{{ proxmox_api_token }}"
       register: tf_result
 
     - name: Display Terraform Output
