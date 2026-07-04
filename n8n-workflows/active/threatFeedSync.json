@@ -1,0 +1,265 @@
+{
+  "id": "threatSync00001",
+  "name": "Threat Feed Auto-Sync",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cron",
+              "expression": "0 2 * * *"
+            }
+          ]
+        }
+      },
+      "id": "trigger-schedule",
+      "name": "Schedule Trigger (2 AM)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://10.0.0.20/api/auth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"password\": \"sM/fZvR7BGcLudzW193V6tLcgDSeHPJUu7+vihm79nU=\"}",
+        "options": {}
+      },
+      "id": "pihole-auth",
+      "name": "Pi-hole Login",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        300,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://10.0.0.20/api/lists",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "sid",
+              "value": "={{ $json.session.sid }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get-adlists",
+      "name": "Get Pi-hole Adlists",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        500,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst lists = $json.lists || [];\nconst targetUrl = \"https://urlhaus.abuse.ch/downloads/hostfile/\";\nconst exists = lists.some(l => l.address === targetUrl);\n\n// Retrieve the session sid from the previous auth node\nconst sid = $(\"Pi-hole Login\").first().json.session.sid;\n\nreturn {\n  json: {\n    exists,\n    sid,\n    targetUrl\n  }\n};\n"
+      },
+      "id": "check-urlhaus",
+      "name": "Check if Feed Exists",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        700,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.exists }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "if-exists",
+      "name": "Feed Exists?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://10.0.0.20/api/lists?type=block",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "sid",
+              "value": "={{ $json.sid }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"address\": \"https://urlhaus.abuse.ch/downloads/hostfile/\", \"comment\": \"URLhaus hostfile (auto-sync)\", \"enabled\": true}",
+        "options": {}
+      },
+      "id": "add-urlhaus",
+      "name": "Add URLhaus Feed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1120,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://10.0.0.67:3005/api/project/1/tasks",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"template_id\": 13, \"debug\": false, \"dry_run\": false}",
+        "options": {}
+      },
+      "id": "trigger-gravity",
+      "name": "Trigger Gravity Update",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1350,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Ansible",
+          "name": "Ansible"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "content": "\ud83d\udee1\ufe0f **Pi-hole Threat Feed Synced**\n- **Status:** URLhaus hostfile feed verified/added.\n- **Action:** Executed Semaphore template ID 13 to update Gravity DNS blocks on pihole-01.",
+        "options": {}
+      },
+      "id": "discord-feed-alert",
+      "name": "Discord Alert",
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        1550,
+        300
+      ],
+      "credentials": {
+        "discordWebhookApi": {
+          "id": "ZUE94hnemt0aeYVD",
+          "name": "Discord Webhook account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger (2 AM)": {
+      "main": [
+        [
+          {
+            "node": "Pi-hole Login",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pi-hole Login": {
+      "main": [
+        [
+          {
+            "node": "Get Pi-hole Adlists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Pi-hole Adlists": {
+      "main": [
+        [
+          {
+            "node": "Check if Feed Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check if Feed Exists": {
+      "main": [
+        [
+          {
+            "node": "Feed Exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Feed Exists?": {
+      "main": [
+        [
+          {
+            "node": "Trigger Gravity Update",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Add URLhaus Feed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add URLhaus Feed": {
+      "main": [
+        [
+          {
+            "node": "Trigger Gravity Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger Gravity Update": {
+      "main": [
+        [
+          {
+            "node": "Discord Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
