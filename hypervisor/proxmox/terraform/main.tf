@@ -1,37 +1,28 @@
-resource "proxmox_virtual_environment_container" "wazuh_manager" {
+resource "proxmox_virtual_environment_vm" "docker_01" {
   node_name = "proxmox"
-  vm_id     = 110
+  vm_id     = 102
+  name      = "docker-01"
+}
 
-  initialization {
-    hostname = "security-01"
+resource "proxmox_virtual_environment_vm" "automation_01" {
+  node_name = "proxmox"
+  vm_id     = 999
+  name      = "automation-01"
+}
 
-    ip_config {
-      ipv4 {
-        address = "10.0.0.40/24"
-        gateway = "10.0.0.1"
-      }
-    }
-  }
+resource "proxmox_virtual_environment_vm" "security_01" {
+  node_name = "proxmox"
+  vm_id     = 109
+  name      = "security-01"
+}
 
-  network_interface {
-    name = "eth0"
-  }
+resource "proxmox_virtual_environment_vm" "colmado_db" {
+  node_name = "proxmox"
+  vm_id     = 101
+  name      = "TUMANDAO"
+}
 
-  operating_system {
-    template_file_id = "local:vztmpl/ubuntu-24.04-standard_24.04-2_amd64.tar.zst"
-    type             = "ubuntu"
-  }
-
-  cpu {
-    cores = 2
-  }
-
-  memory {
-    dedicated = 4096 # Recommended minimum for Wazuh Manager
-  }
-
-  disk {
-    datastore_id = "local-lvm"
-    size         = 30
-  }
+resource "proxmox_virtual_environment_container" "pihole_01" {
+  node_name = "proxmox"
+  vm_id     = 105
 }
