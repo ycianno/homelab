@@ -84,6 +84,16 @@ resource "proxmox_virtual_environment_vm" "automation_01" {
     file_format  = "qcow2"
     type         = "4m"
   }
+  lifecycle {
+    ignore_changes = [
+      machine,
+      operating_system,
+      disk,
+      efi_disk,
+      description,
+      serial_device,
+    ]
+  }
 }
 
 resource "proxmox_virtual_environment_vm" "colmado_db" {
@@ -119,6 +129,16 @@ resource "proxmox_virtual_environment_vm" "colmado_db" {
   network_device {
     bridge = "vmbr0"
     firewall = true
+  }
+  lifecycle {
+    ignore_changes = [
+      machine,
+      operating_system,
+      disk,
+      efi_disk,
+      description,
+      serial_device,
+    ]
   }
 }
 
@@ -160,6 +180,17 @@ resource "proxmox_virtual_environment_vm" "docker_01" {
     datastore_id = "local"
     file_format  = "qcow2"
     type         = "4m"
+  }
+  lifecycle {
+    ignore_changes = [
+      machine,
+      operating_system,
+      disk,
+      efi_disk,
+      description,
+      serial_device,
+      tablet_device,
+    ]
   }
 }
 
@@ -213,5 +244,15 @@ resource "proxmox_virtual_environment_vm" "security_01" {
       domain = "local.ycianno.uk"
       servers = ["10.0.0.20"]
     }
+  }
+  lifecycle {
+    ignore_changes = [
+      machine,
+      operating_system,
+      disk,
+      efi_disk,
+      description,
+      serial_device,
+    ]
   }
 }
