@@ -1,0 +1,958 @@
+{
+  "updatedAt": "2026-06-23T22:05:59.244Z",
+  "createdAt": "2026-06-23T19:54:00.162Z",
+  "id": "candEvalWorkflow123",
+  "name": "Daily Candidate Priority Digest (n8n + Ollama)",
+  "description": null,
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "1",
+      "name": "When clicking \"Test workflow\"",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "2",
+      "name": "Daily 8 AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        250,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://accounts.zoho.com/oauth/v2/token",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "grant_type",
+              "value": "refresh_token"
+            },
+            {
+              "name": "client_id",
+              "value": "1000.VUEE5FPBQ3Q8HHZULOI3PPMHWV599N"
+            },
+            {
+              "name": "client_secret",
+              "value": "148f2bb971057a918e053d9e69ab776c80499f6306"
+            },
+            {
+              "name": "refresh_token",
+              "value": "1000.40e4918369a51f8dc0a91a117adfee50.beaabcd8ac45a69bdcee545d406e65d2"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3",
+      "name": "Refresh Zoho Token Initial",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        480,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://recruit.zoho.com/recruit/v2/Applications/search",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "criteria",
+              "value": "((Application_Status:equals:Applied)and(Resume_Digest_Processed:equals:false))"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $node[\"Refresh Zoho Token Initial\"].json.access_token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4",
+      "name": "Search Applications",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        700,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "if (!$json.data || !Array.isArray($json.data)) {\n  return [];\n}\nreturn $json.data.map(item => ({ json: item }));"
+      },
+      "id": "16",
+      "name": "Split Applications",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        860,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "5",
+      "name": "Loop Applications",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 2,
+      "position": [
+        1020,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://recruit.zoho.com/recruit/v2/Candidates/{{ $node[\"Loop Applications\"].json[\"$Candidate_Id\"] }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $node[\"Refresh Zoho Token\"].json.access_token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6",
+      "name": "Get Candidate Info",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        1240,
+        140
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "=https://recruit.zoho.com/recruit/v2/JobOpenings/{{ $node[\"Loop Applications\"].json[\"$Job_Opening_Id\"] }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $node[\"Refresh Zoho Token\"].json.access_token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7",
+      "name": "Get Job Info",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        1440,
+        140
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "=https://recruit.zoho.com/recruit/v2/Candidates/{{ $node[\"Get Candidate Info\"].json.data[0].id }}/Attachments",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $node[\"Refresh Zoho Token\"].json.access_token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "8",
+      "name": "Get Resume File",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        1640,
+        140
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "=https://recruit.zoho.com/recruit/v2/Candidates/{{ $node[\"Get Candidate Info\"].json.data[0].id }}/Attachments/{{ $json.attachment_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $node[\"Refresh Zoho Token\"].json.access_token }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "17",
+      "name": "Download Resume File",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        2240,
+        40
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://10.0.0.67:8090/extract",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9",
+      "name": "Extract Resume Text",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        2440,
+        40
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://10.0.0.79:11434/api/generate",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "10",
+      "name": "Evaluate with Ollama",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        2840,
+        40
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  json: JSON.parse($json.response)\n};"
+      },
+      "id": "11",
+      "name": "Parse Ollama JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3040,
+        140
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://recruit.zoho.com/recruit/v2/Applications/{{ $node[\"Loop Applications\"].json.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $node[\"Refresh Zoho Token\"].json.access_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"data\": [\n    {\n      \"Resume_Digest_Processed\": true,\n      \"AI_Resume_Rating\": \"{{ $json.rating }}\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "12",
+      "name": "Writeback to Zoho",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        3240,
+        140
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const stdout = $(\"Get Unsent from Cache\").first().json.stdout;\nconst unsentCandidates = JSON.parse(stdout);\n\nconst recruiterDigests = {};\n\nfor (const evalResult of unsentCandidates) {\n  let recruiterEmail = evalResult.recruiter_email || \"ayciano@blackbirchgroup.com\";\n  let recruiterName = evalResult.recruiter_name || \"Recruiter\";\n  \n  if (!recruiterDigests[recruiterEmail]) {\n    recruiterDigests[recruiterEmail] = {\n      recruiter_email: recruiterEmail,\n      recruiter_name: recruiterName,\n      candidates: {\n        Green: [],\n        Yellow: [],\n        Red: [],\n        Error: []\n      }\n    };\n  }\n  \n  const rating = evalResult.rating || \"Error\";\n  recruiterDigests[recruiterEmail].candidates[rating].push({\n    name: evalResult.name || \"Unknown Candidate\",\n    job_title: evalResult.job_title,\n    score: evalResult.score || 0,\n    summary: evalResult.summary || \"No evaluation details.\",\n    gaps: evalResult.gaps || [],\n    questions: evalResult.questions || [],\n    app_id: evalResult.app_id\n  });\n}\n\nconst output = [];\n\nfor (const email of Object.keys(recruiterDigests)) {\n  const digest = recruiterDigests[email];\n  let html = `<h3>\ud83d\udcca New Candidates Pending Review</h3>`;\n  html += `<p>Hello ${digest.recruiter_name}, here is your daily candidate evaluation summary.</p><hr/>`;\n  \n  const categories = [\"Green\", \"Yellow\", \"Red\"];\n  const colors = { Green: \"\ud83d\udfe2 Good to Invite First\", Yellow: \"\ud83d\udfe1 Verify Gaps First\", Red: \"\ud83d\udd34 Manual Review\" };\n  const borderColors = { Green: \"#28a745\", Yellow: \"#ffc107\", Red: \"#dc3545\" };\n  \n  let totalCount = 0;\n  for (const cat of categories) {\n    const list = digest.candidates[cat];\n    totalCount += list.length;\n    if (list.length === 0) continue;\n    \n    html += `<h4>${colors[cat]} (${list.length})</h4>`;\n    html += `<table border=\"1\" cellpadding=\"8\" style=\"border-collapse: collapse; width: 100%; border: 1px solid #ccc; font-family: sans-serif; font-size: 14px; margin-bottom: 20px;\">`;\n    html += `<tr style=\"background-color: #f8f9fa;\">`;\n    html += `<th align=\"left\" style=\"width: 25%;\">Candidate</th>`;\n    html += `<th align=\"left\" style=\"width: 25%;\">Applied For</th>`;\n    html += `<th align=\"left\" style=\"width: 10%;\">Score</th>`;\n    if (cat === \"Yellow\") {\n      html += `<th align=\"left\" style=\"width: 40%;\">Key Gaps & Suggested Questions</th>`;\n    } else {\n      html += `<th align=\"left\" style=\"width: 40%;\">AI reasoning / Summary</th>`;\n    }\n    html += `</tr>`;\n    \n    for (const item of list) {\n      const zohoLink = `https://recruit.zoho.com/recruit/EntityInfo.do?module=Applications&id=${item.app_id}`;\n      html += `<tr>`;\n      html += `<td><strong>${item.name}</strong><br/><a href=\"${zohoLink}\" target=\"_blank\" style=\"color: #007bff; text-decoration: none; font-size: 12px;\">Open in Zoho</a></td>`;\n      html += `<td>${item.job_title}</td>`;\n      html += `<td style=\"font-weight: bold; color: ${borderColors[cat]};\">${item.score}/100</td>`;\n      \n      if (cat === \"Yellow\") {\n        html += `<td>`;\n        if (item.gaps.length > 0) {\n          html += `<strong>Identified Gaps:</strong><ul>` + item.gaps.map(g => `<li>${g}</li>`).join(\"\") + `</ul>`;\n        }\n        if (item.questions.length > 0) {\n          html += `<strong>Suggested Questions:</strong><ul>` + item.questions.map(q => `<li>${q}</li>`).join(\"\") + `</ul>`;\n        }\n        html += `</td>`;\n      } else {\n        html += `<td>${item.summary}</td>`;\n      }\n      html += `</tr>`;\n    }\n    html += `</table>`;\n  }\n  \n  if (totalCount > 0) {\n    output.push({\n      json: {\n        to_email: email,\n        subject: `\ud83d\udccb [Daily Digest] ${totalCount} Candidates Pending Review`,\n        html_body: html\n      }\n    });\n  }\n}\n\nreturn output;"
+      },
+      "id": "14",
+      "name": "Group & Format Digests",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3660,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "recruitment@blackbirchgroup.com",
+        "toEmail": "={{ $json.to_email }}",
+        "subject": "={{ $json.subject }}",
+        "html": "={{ $json.html_body }}",
+        "options": {}
+      },
+      "id": "15",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        3880,
+        340
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "smtpCredsId",
+          "name": "SMTP Credentials"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const jobData = $(\"Get Job Info\").item.json.data[0];\nconst candData = $(\"Get Candidate Info\").item.json.data[0];\nconst resumeText = $json.text;\n\nconst prompt = `You are a technical recruiter evaluating candidate fits.\n\nJob: ${jobData.Job_Opening_Name}\nJD: ${jobData.Job_Description}\n\nCandidate: ${candData.Full_Name}\nResume Text:\n${resumeText}\n\nEvaluate and return ONLY a valid JSON object matching this structure:\n{\n  \"rating\": \"Green\" | \"Yellow\" | \"Red\",\n  \"score\": 0-100,\n  \"summary\": \"short summary\",\n  \"gaps\": [\"gap 1\"],\n  \"questions\": [\"question 1\"]\n}`;\n\nreturn {\n  json: {\n    model: \"qwen2.5:7b\",\n    prompt: prompt,\n    stream: false,\n    format: \"json\"\n  }\n};"
+      },
+      "id": "18",
+      "name": "Build Ollama Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2640,
+        40
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const attachments = $json.data;\nif (!attachments || attachments.length === 0) {\n  return { json: { isValid: false, reason: \"No resume attached\" } };\n}\nconst first = attachments[0];\nif (!first.File_Name || first.Size === \"0\" || first[\"$file_id\"] === \"-1\") {\n  return { json: { isValid: false, reason: \"Invalid or empty resume file\" } };\n}\nreturn { json: { isValid: true, attachment_id: first.id } };"
+      },
+      "id": "19",
+      "name": "Check Resume Validity",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1840,
+        140
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.isValid }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "20",
+      "name": "Is Resume Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        2040,
+        140
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  json: {\n    response: JSON.stringify({\n      rating: \"Red\",\n      score: 0,\n      summary: `Could not evaluate candidate: ${$json.reason}.`,\n      gaps: [$json.reason],\n      questions: []\n    })\n  }\n};"
+      },
+      "id": "21",
+      "name": "Mock Ollama Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://accounts.zoho.com/oauth/v2/token",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "grant_type",
+              "value": "refresh_token"
+            },
+            {
+              "name": "client_id",
+              "value": "1000.VUEE5FPBQ3Q8HHZULOI3PPMHWV599N"
+            },
+            {
+              "name": "client_secret",
+              "value": "148f2bb971057a918e053d9e69ab776c80499f6306"
+            },
+            {
+              "name": "refresh_token",
+              "value": "1000.40e4918369a51f8dc0a91a117adfee50.beaabcd8ac45a69bdcee545d406e65d2"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "22",
+      "name": "Refresh Zoho Token",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        1320,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $node[\"Loop Applications\"].context.currentRunIndex % 30 === 0 }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "23",
+      "name": "Should Refresh Token?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "command": "=node /home/node/.n8n/cache_manager.js check \"{{ $json.id }}\""
+      },
+      "id": "24",
+      "name": "Check Cache",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ JSON.parse($json.stdout).exists }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "25",
+      "name": "Is in Cache?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1280,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const app = $(\"Loop Applications\").item.json;\nconst cand = $(\"Get Candidate Info\").item.json.data[0];\nconst job = $(\"Get Job Info\").item.json.data[0];\nconst evalResult = $(\"Parse Ollama JSON\").item.json;\n\nlet recruiterEmail = \"ayciano@blackbirchgroup.com\";\nlet recruiterName = \"Recruiter\";\nif (job.Assigned_Recruiter) {\n  if (Array.isArray(job.Assigned_Recruiter) && job.Assigned_Recruiter.length > 0) {\n    recruiterEmail = job.Assigned_Recruiter[0].email || recruiterEmail;\n    recruiterName = job.Assigned_Recruiter[0].name || recruiterName;\n  } else {\n    recruiterEmail = job.Assigned_Recruiter.email || recruiterEmail;\n    recruiterName = job.Assigned_Recruiter.name || recruiterName;\n  }\n}\n\nreturn {\n  json: {\n    app_id: app.id,\n    name: cand.Full_Name || \"Unknown Candidate\",\n    job_title: job.Job_Opening_Name,\n    score: evalResult.score || 0,\n    rating: evalResult.rating || \"Error\",\n    summary: evalResult.summary || \"No evaluation details.\",\n    gaps: evalResult.gaps || [],\n    questions: evalResult.questions || [],\n    recruiter_email: recruiterEmail,\n    recruiter_name: recruiterName\n  }\n};"
+      },
+      "id": "29",
+      "name": "Build Cache Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3440,
+        140
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "command": "=node /home/node/.n8n/cache_manager.js add '{{ JSON.stringify($json) }}'"
+      },
+      "id": "26",
+      "name": "Save to Cache",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        3640,
+        140
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "command": "node /home/node/.n8n/cache_manager.js get_unsent"
+      },
+      "id": "27",
+      "name": "Get Unsent from Cache",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        3660,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const stdout = $(\"Get Unsent from Cache\").first().json.stdout;\nconst appIds = JSON.parse(stdout).map(c => c.app_id);\nreturn { json: { app_ids: appIds } };"
+      },
+      "id": "30",
+      "name": "Build Sent App IDs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4100,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "command": "=node /home/node/.n8n/cache_manager.js mark_sent '{{ JSON.stringify($json.app_ids) }}'"
+      },
+      "id": "28",
+      "name": "Mark as Sent in Cache",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        4300,
+        340
+      ]
+    }
+  ],
+  "connections": {
+    "When clicking \"Test workflow\"": {
+      "main": [
+        [
+          {
+            "node": "Refresh Zoho Token Initial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily 8 AM": {
+      "main": [
+        [
+          {
+            "node": "Refresh Zoho Token Initial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Refresh Zoho Token": {
+      "main": [
+        [
+          {
+            "node": "Get Candidate Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Applications": {
+      "main": [
+        [
+          {
+            "node": "Split Applications",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Applications": {
+      "main": [
+        [
+          {
+            "node": "Loop Applications",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Applications": {
+      "main": [
+        [
+          {
+            "node": "Check Cache",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Unsent from Cache",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Candidate Info": {
+      "main": [
+        [
+          {
+            "node": "Get Job Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Job Info": {
+      "main": [
+        [
+          {
+            "node": "Get Resume File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Resume File": {
+      "main": [
+        [
+          {
+            "node": "Check Resume Validity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Resume File": {
+      "main": [
+        [
+          {
+            "node": "Extract Resume Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Resume Text": {
+      "main": [
+        [
+          {
+            "node": "Build Ollama Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluate with Ollama": {
+      "main": [
+        [
+          {
+            "node": "Parse Ollama JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Ollama JSON": {
+      "main": [
+        [
+          {
+            "node": "Writeback to Zoho",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Writeback to Zoho": {
+      "main": [
+        [
+          {
+            "node": "Build Cache Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Group & Format Digests": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Ollama Payload": {
+      "main": [
+        [
+          {
+            "node": "Evaluate with Ollama",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Resume Validity": {
+      "main": [
+        [
+          {
+            "node": "Is Resume Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Resume Valid?": {
+      "main": [
+        [
+          {
+            "node": "Download Resume File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mock Ollama Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mock Ollama Response": {
+      "main": [
+        [
+          {
+            "node": "Parse Ollama JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Refresh Zoho Token Initial": {
+      "main": [
+        [
+          {
+            "node": "Search Applications",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Should Refresh Token?": {
+      "main": [
+        [
+          {
+            "node": "Refresh Zoho Token",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Candidate Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Cache": {
+      "main": [
+        [
+          {
+            "node": "Is in Cache?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is in Cache?": {
+      "main": [
+        [
+          {
+            "node": "Loop Applications",
+            "type": "main",
+            "index": 1
+          }
+        ],
+        [
+          {
+            "node": "Should Refresh Token?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Cache": {
+      "main": [
+        [
+          {
+            "node": "Loop Applications",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Get Unsent from Cache": {
+      "main": [
+        [
+          {
+            "node": "Group & Format Digests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email": {
+      "main": [
+        [
+          {
+            "node": "Build Sent App IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Cache Payload": {
+      "main": [
+        [
+          {
+            "node": "Save to Cache",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Sent App IDs": {
+      "main": [
+        [
+          {
+            "node": "Mark as Sent in Cache",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark as Sent in Cache": {
+      "main": []
+    }
+  },
+  "settings": {},
+  "staticData": null,
+  "meta": {
+    "instanceId": "n8nInstanceLoc"
+  },
+  "pinData": {},
+  "versionId": "11064184-75e9-4f3f-a7a4-4aadba2ad1d2",
+  "activeVersionId": null,
+  "versionCounter": 50,
+  "triggerCount": 0,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-06-23T19:54:00.174Z",
+      "createdAt": "2026-06-23T19:54:00.174Z",
+      "role": "workflow:owner",
+      "workflowId": "candEvalWorkflow123",
+      "projectId": "watVxhiyEGu7o6r1",
+      "project": {
+        "updatedAt": "2026-05-16T23:36:59.733Z",
+        "createdAt": "2026-05-16T23:33:23.057Z",
+        "id": "watVxhiyEGu7o6r1",
+        "name": "Alfredo Yciano <alfredohiciano13@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "a28a00c5-b0c8-43be-bdf6-fd02a41bbc63"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}
