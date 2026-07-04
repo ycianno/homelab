@@ -1,0 +1,12 @@
+---
+- name: Update Pi-hole Gravity
+  hosts: proxmox_hosts
+  become: yes
+  tasks:
+    - name: Run gravity update inside Pi-hole LXC container
+      command: pct exec 105 -- /usr/local/bin/pihole -g
+      register: gravity_output
+
+    - name: Output gravity results
+      debug:
+        var: gravity_output.stdout_lines
