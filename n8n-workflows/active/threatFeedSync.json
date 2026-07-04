@@ -28,7 +28,7 @@
         "url": "http://10.0.0.20/api/auth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "{\"password\": \"sM/fZvR7BGcLudzW193V6tLcgDSeHPJUu7+vihm79nU=\"}",
+        "jsonBody": "={\"password\": \"{{$env.PIHOLE_PASSWORD}}\"}",
         "options": {}
       },
       "id": "pihole-auth",
