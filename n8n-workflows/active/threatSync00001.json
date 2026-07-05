@@ -1,6 +1,11 @@
 {
+  "updatedAt": "2026-07-04T12:39:36.000Z",
+  "createdAt": "2026-07-04T04:14:38.562Z",
   "id": "threatSync00001",
   "name": "Threat Feed Auto-Sync",
+  "description": null,
+  "active": true,
+  "isArchived": false,
   "nodes": [
     {
       "parameters": {
@@ -153,7 +158,7 @@
     {
       "parameters": {
         "authentication": "webhook",
-        "content": "\ud83d\udee1\ufe0f **Pi-hole Threat Feed Synced**\n- **Status:** URLhaus hostfile feed verified/added.\n- **Action:** Executed Semaphore template ID 13 to update Gravity DNS blocks on pihole-01.",
+        "content": "🛡️ **Pi-hole Threat Feed Synced**\n- **Status:** URLhaus hostfile feed verified/added.\n- **Action:** Executed Semaphore template ID 13 to update Gravity DNS blocks on pihole-01.",
         "options": {}
       },
       "id": "discord-feed-alert",
@@ -258,8 +263,38 @@
       ]
     }
   },
-  "active": true,
   "settings": {
     "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "3e3aa5c8-3a7d-44cc-884e-118225f2457b",
+  "activeVersionId": "3e3aa5c8-3a7d-44cc-884e-118225f2457b",
+  "versionCounter": 2,
+  "triggerCount": 0,
+  "tags": [],
+  "shared": [
+    {
+      "updatedAt": "2026-07-04T04:14:38.570Z",
+      "createdAt": "2026-07-04T04:14:38.570Z",
+      "role": "workflow:owner",
+      "workflowId": "threatSync00001",
+      "projectId": "watVxhiyEGu7o6r1",
+      "project": {
+        "updatedAt": "2026-05-16T23:36:59.733Z",
+        "createdAt": "2026-05-16T23:33:23.057Z",
+        "id": "watVxhiyEGu7o6r1",
+        "name": "Alfredo Yciano <alfredohiciano13@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "a28a00c5-b0c8-43be-bdf6-fd02a41bbc63"
+      }
+    }
+  ],
+  "versionMetadata": {
+    "name": null,
+    "description": null
   }
 }
