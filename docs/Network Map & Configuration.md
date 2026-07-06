@@ -107,3 +107,8 @@ Server administration uses Tailscale identity-based SSH instead of standard publ
 * **Active Nodes**: `automation-01`, `docker` (local VM `docker-01`), `yzee` (local VM `colmado-db`), `security-01`, `proxmox`.
 * **Source Restrictions**: Connections originating from untagged admin members (`ycianno@github` / `autogroup:member`) bypass SSH key verification. Connections from `automation-01` (`tag:automation`) are authorized for Ansible automation tasks. Note that the Mac Mini must remain **untagged**; assigning a resource tag removes its user identity context and blocks its ability to initiate SSH under Tailscale SSH ACL rules.
 * **Mac Mini (GUI Sandbox Exception)**: The macOS GUI Tailscale client runs sandboxed and cannot act as a Tailscale SSH *server*. Therefore, connections entering the Mac (like n8n fetching docs) fallback to traditional SSH key authentication but are securely routed over the Mac's static Tailscale IP (`100.115.112.1`).
+
+### 3. Windows SSH over Tailscale (Standard Keys)
+* **Active Node**: `yzee-1` (local VM `budgetnote-win01` running Windows).
+* **Authentication Method**: The keyless Tailscale SSH *server* feature is not supported on Windows. Access is managed by the native Windows OpenSSH Server daemon, authenticated via your Mac's SSH public key (`id_ed25519.pub`) mapped to the local Windows profile **`pj640`**.
+
