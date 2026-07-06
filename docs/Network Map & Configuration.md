@@ -44,12 +44,12 @@ All local interfaces are bound to the `10.0.0.0/24` subnet. Interfaces running T
 | **`gateway`** | `10.0.0.1` | — | Physical | RouterOS/Proprietary | Gateway, DHCP Server, Firewall |
 | **`budgetnote-win01`**| `10.0.0.15` | — | VM (103) | Windows Server | Windows Lab Server |
 | **`pihole-01`** | `10.0.0.20` | — | LXC (105) | Ubuntu 24.04 | Primary DNS Resolver, Ad-blocking |
-| **`docker-01`** | `10.0.0.33` | `100.111.220.29` | VM (102) | Debian 12 | Nextcloud, Cloudflare Tunnel |
-| **`colmado-db`** | `10.0.0.35` | `100.73.70.23` | VM (101) | Ubuntu 24.04 | Supabase PostgreSQL Dev Database |
+| **`docker-01`** (Tailscale: `docker`) | `10.0.0.33` | `100.111.220.29` | VM (102) | Debian 12 | Nextcloud, Cloudflare Tunnel |
+| **`colmado-db`** (Tailscale: `yzee`) | `10.0.0.35` | `100.73.70.23` | VM (101) | Ubuntu 24.04 | Supabase PostgreSQL Dev Database |
 | **`security-01`** | `10.0.0.40` | `100.95.167.60` | VM (109) | Ubuntu 22.04 | Wazuh Manager, CrowdSec LAPI |
 | **`automation-01`** | `10.0.0.67` | `100.116.91.110` | VM (999) | Debian 13 | n8n, Semaphore, Nginx Proxy Manager |
 | **`proxmox`** | `10.0.0.167`| `100.70.144.80` | Host | Proxmox VE 8.4 | Hypervisor, Subnet Router, Exit Node |
-| **`yzees-mac-mini`** | *Dynamic* | `100.115.112.1` | Client | macOS | Admin Workstation (`tag:mac`) |
+| **`yzees-mac-mini`** | *Dynamic* | `100.115.112.1` | Client | macOS | Admin Workstation (Untagged - `ycianno@github`) |
 
 ---
 
@@ -104,6 +104,6 @@ The Proxmox host (`10.0.0.167`) acts as the subnet router.
 
 ### 2. Tailscale SSH (Keyless Administration)
 Server administration uses Tailscale identity-based SSH instead of standard public SSH keys.
-* **Active Nodes**: `automation-01`, `docker-01`, `colmado-db`, `security-01`, `proxmox`.
-* **Source Restrictions**: Connections originating from tagged admins (`tag:mac`) bypass SSH key verification. Connections from `automation-01` (`tag:automation`) are authorized for Ansible automation tasks.
+* **Active Nodes**: `automation-01`, `docker` (local VM `docker-01`), `yzee` (local VM `colmado-db`), `security-01`, `proxmox`.
+* **Source Restrictions**: Connections originating from untagged admin members (`ycianno@github` / `autogroup:member`) bypass SSH key verification. Connections from `automation-01` (`tag:automation`) are authorized for Ansible automation tasks. Note that the Mac Mini must remain **untagged**; assigning a resource tag removes its user identity context and blocks its ability to initiate SSH under Tailscale SSH ACL rules.
 * **Mac Mini (GUI Sandbox Exception)**: The macOS GUI Tailscale client runs sandboxed and cannot act as a Tailscale SSH *server*. Therefore, connections entering the Mac (like n8n fetching docs) fallback to traditional SSH key authentication but are securely routed over the Mac's static Tailscale IP (`100.115.112.1`).

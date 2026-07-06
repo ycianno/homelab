@@ -28,8 +28,10 @@ This document details the architectural migration from Twingate to Tailscale, ex
 
 ### 1. Activating Tailscale SSH Server
 Tailscale SSH allows Tailscale to take over port 22 on the tailnet interface.
-* **Nodes Configured**: `automation-01`, `docker-01`, `colmado-db`, `security-01`, and `proxmox`.
+* **Nodes Configured**: `automation-01`, `docker` (local VM `docker-01`), `yzee` (local VM `colmado-db`), `security-01`, and `proxmox`.
 * **Verification**: Ran SSH diagnostics from the Mac Mini to confirm all 5 servers accepted keyless/passwordless handshakes based purely on GitHub Tailscale identity.
+* **macOS Tagging Gotcha**: The admin workstation (`yzees-mac-mini`) must remain **untagged** (registered directly under the owner `ycianno@github`). Tagging the Mac with a resource tag removes its user identity context, which prevents it from matching the `autogroup:member` source rule in Tailscale SSH ACLs and breaks connectivity.
+
 
 ### 2. Setting Up Proxmox as Subnet Router & Exit Node
 Rather than running routing software inside a virtualized guest (like Twingate did), we configured the bare-metal hypervisor directly:
