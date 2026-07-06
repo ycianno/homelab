@@ -42,7 +42,7 @@ All local interfaces are bound to the `10.0.0.0/24` subnet. Interfaces running T
 | Hostname | LAN IP | Tailscale IP | Type | OS | Primary Roles & Services |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **`gateway`** | `10.0.0.1` | — | Physical | RouterOS/Proprietary | Gateway, DHCP Server, Firewall |
-| **`budgetnote-win01`**| `10.0.0.15` | — | VM (103) | Windows Server | Windows Lab Server |
+| **`budgetnote-win01`** (Tailscale: `yzee-1`) | `10.0.0.15` | `100.111.141.123` | VM (103) | Windows Server | Windows Lab Server (`tag:windows`) |
 | **`pihole-01`** | `10.0.0.20` | — | LXC (105) | Ubuntu 24.04 | Primary DNS Resolver, Ad-blocking |
 | **`docker-01`** (Tailscale: `docker`) | `10.0.0.33` | `100.111.220.29` | VM (102) | Debian 12 | Nextcloud, Cloudflare Tunnel |
 | **`colmado-db`** (Tailscale: `yzee`) | `10.0.0.35` | `100.73.70.23` | VM (101) | Ubuntu 24.04 | Supabase PostgreSQL Dev Database |
