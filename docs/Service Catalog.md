@@ -73,7 +73,7 @@ The latest Wazuh review showed active agents for Proxmox, `automation-01`, `dock
 | --- | --- | --- |
 | Proxmox VE | Bare metal | VM/LXC lifecycle, virtual networking, and storage |
 | Pi-hole FTL 6.6.2 | `pihole-01` LXC | Filtering and selected local DNS records |
-| Twingate Connector | `twingate-connector` LXC | Private remote administration |
+| Tailscale Subnet Router | `proxmox` Host | Private remote administration & exit node |
 | GitHub | External | Public source of truth for sanitized infrastructure and documentation |
 | Ollama | Admin workstation | Local model runtime used by Open WebUI and selected automation |
 

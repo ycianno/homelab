@@ -26,7 +26,7 @@ Its primary responsibilities include:
 *   **Host Server:** [automation-01](../Servers/automation-01.md) (Control Plane Host)
 *   **Host IP Address:** `10.0.0.67`
 *   **Service URL:** [http://10.0.0.67:5678](http://10.0.0.67:5678)
-*   **Access Method:** Reachable internally on the home network or remotely via the **Twingate** secure connector.
+*   **Access Method:** Reachable internally on the home network or remotely via the **Tailscale VPN** mesh connection.
 
 ---
 

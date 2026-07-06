@@ -23,12 +23,12 @@ flowchart LR
         Data["colmado-db\nSupabase platform"]
         Security["security-01\nWazuh + CrowdSec"]
         DNS["pihole-01\nDNS filtering"]
-        Twingate["Twingate connector\nRemote administration"]
+        Tailscale["Tailscale VPN\nSubnet router & exit node"]
     end
 
-    Internet --> Twingate
+    Internet --> Tailscale
     Internet -->|Cloudflare Tunnel| Docker
-    Twingate --> Auto
+    Tailscale --> Auto
     Auto --> Docker
     Auto --> Data
     Auto --> Security
@@ -44,14 +44,14 @@ flowchart LR
 
 | Layer | Platform | Role |
 | --- | --- | --- |
-| Virtualization | Proxmox VE 8.4 | Runs four VMs and two infrastructure LXCs |
+| Virtualization | Proxmox VE 8.4 | Runs four VMs and one infrastructure LXC |
 | Control plane | Debian 13 VM | n8n, Semaphore, reverse proxy, dashboards, monitoring, Docker management, and local-AI UI |
 | Applications | Debian 12 VM | Nextcloud, log viewing, metrics, container management agent, and Cloudflare Tunnel |
 | Data platform | Ubuntu 24.04 VM | Thirteen-container self-hosted Supabase stack for application development |
 | Security | Ubuntu 22.04 VM | Wazuh manager/indexer/dashboard and CrowdSec central API |
-| Network services | Two Ubuntu 24.04 LXCs | Pi-hole filtering and Twingate remote access |
+| Network services | One Ubuntu 24.04 LXC | Pi-hole DNS filtering |
 
-The primary network is `10.0.0.0/24`. Internal HTTP services are consolidated behind Nginx Proxy Manager with DNS-01 certificates. Twingate provides private administrative access, while Cloudflare Tunnel exposes only selected application traffic.
+The primary network is `10.0.0.0/24`. Internal HTTP services are consolidated behind Nginx Proxy Manager with DNS-01 certificates. Tailscale provides private administrative mesh VPN access, while Cloudflare Tunnel exposes only selected application traffic.
 
 ## Platforms and applications
 

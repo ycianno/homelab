@@ -1,6 +1,6 @@
 ---
 - name: Deploy SSH Login Alerts to Discord
-  hosts: linux_servers
+  hosts: linux_servers,proxmox_hosts
   become: true
   vars:
     discord_webhook_url: "{{ ssh_alerts_discord_webhook | default('YOUR_DISCORD_WEBHOOK_URL') }}"
@@ -14,53 +14,56 @@
         mode: '0755'
         content: |
           #!/usr/bin/env bash
-          # Triggered by PAM on successful SSH login.
-          # Sends a webhook alert to Discord.
+          # Triggered by PAM on successful SSH login (sshd or tailscaled).
+          # Routes the alert through n8n for classification.
 
           if [ "$PAM_TYPE" = "open_session" ]; then
-              WEBHOOK_URL="{{ discord_webhook_url }}"
-
-              # Skip if webhook is placeholder
-              if [ "$WEBHOOK_URL" = "YOUR_DISCORD_WEBHOOK_URL" ]; then
-                  exit 0
-              fi
+              N8N_WEBHOOK_URL="http://10.0.0.67:5678/webhook/sshLoginAlerts/webhook/ssh-login-alerts"
 
               # Gather variables
-              USER_LOGIN="$PAM_USER"
-              REMOTE_IP="$PAM_RHOST"
-              SERVER_NAME=$(hostname)
-              LOGIN_TIME=$(date "+%Y-%m-%d %H:%M:%S")
+              USER_LOGIN=$(echo "$PAM_USER" | tr -d '\r\n')
+              REMOTE_IP=$(echo "$PAM_RHOST" | tr -d '\r\n')
+              SERVER_NAME=$(hostname | tr -d '\r\n')
+              LOGIN_TIME=$(date "+%Y-%m-%d %H:%M:%S" | tr -d '\r\n')
+              TTY=$(echo "$PAM_TTY" | tr -d '\r\n')
+
+              # Resolve connection type and authentication key
+              if [ -n "$TAILSCALE_SSH_USER" ]; then
+                  # Tailscale SSH session: extract Tailscale login and client node
+                  AUTH_KEY="tailscale-ssh $TAILSCALE_SSH_USER $TAILSCALE_SSH_NODE"
+              else
+                  # Standard SSH session: resolve public key content from SSH_AUTH_INFO_0
+                  AUTH_KEY=$(echo "$SSH_AUTH_INFO_0" | tr -d '\r\n')
+              fi
 
               # Ignore local/loopback logins
               if [ "$REMOTE_IP" = "localhost" ] || [ "$REMOTE_IP" = "127.0.0.1" ] || [ "$REMOTE_IP" = "::1" ]; then
                   exit 0
               fi
 
-              # Create JSON payload
-              PAYLOAD=$(cat <<INNER_EOF
-              {
-                "username": "SSH Alert Bot",
-                "embeds": [{
-                  "title": "🚨 Successful SSH Login",
-                  "color": 15158332,
-                  "fields": [
-                    { "name": "Server", "value": "${SERVER_NAME}", "inline": true },
-                    { "name": "User", "value": "${USER_LOGIN}", "inline": true },
-                    { "name": "Remote IP", "value": "${REMOTE_IP}", "inline": false },
-                    { "name": "Time", "value": "${LOGIN_TIME}", "inline": false }
-                  ]
-                }]
-              }
-          INNER_EOF
-              )
+              # Create single-line JSON payload
+              PAYLOAD="{\"server\":\"${SERVER_NAME}\",\"user\":\"${USER_LOGIN}\",\"ip\":\"${REMOTE_IP}\",\"time\":\"${LOGIN_TIME}\",\"auth_info\":\"${AUTH_KEY}\",\"tty\":\"${TTY}\"}"
 
-              # Send POST request to Discord
-              curl -s -H "Content-Type: application/json" -X POST -d "$PAYLOAD" "$WEBHOOK_URL"
+              # Send POST request to n8n Webhook
+              curl -s -H "Content-Type: application/json" -X POST -d "$PAYLOAD" "$N8N_WEBHOOK_URL"
           fi
 
-    - name: Enable SSH login script in PAM configuration
+    - name: Enable SSH login script in PAM sshd configuration
       lineinfile:
         path: /etc/pam.d/sshd
         line: session optional pam_exec.so seteuid /usr/local/bin/ssh-login-alert.sh
         state: present
         insertafter: EOF
+
+    - name: Create PAM configuration for Tailscale SSH
+      copy:
+        dest: /etc/pam.d/tailscale
+        owner: root
+        group: root
+        mode: '0644'
+        content: |
+          # PAM configuration for Tailscale SSH
+          @include common-auth
+          @include common-account
+          @include common-session
+          session optional pam_exec.so seteuid /usr/local/bin/ssh-login-alert.sh

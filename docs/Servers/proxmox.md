@@ -28,6 +28,5 @@ ip: 10.0.0.167
 | 999 | [automation-01](automation-01.md) | VM | Automation / control plane |
 | 102 | [docker-01](docker-01.md) | VM | Main Docker app server |
 | 105 | [pihole-01](pihole-01.md) | LXC | DNS filtering |
-| 104 | twingate-connector | CT | Secure remote access |
 | 101 | [colmado-db](colmado-db.md) | VM | Vitrina dev database |
 | 109 | [security-01](security-01.md) | VM | Security monitoring (Wazuh) |

@@ -25,7 +25,6 @@ Uptime Kuma is configured as the **source of truth** for service monitoring:
 - **Portainer automation-01** (HTTPS check)
 - **Proxmox** (Host ping)
 - **Semaphore** (Port 3005 check)
-- **Twingate** (Connector ping)
 - **Pi-hole Web** (HTTP check to `https://pihole.local.yourdomain.com/admin`; internal endpoint `http://10.0.0.20/admin`)
 - **Pi-hole DNS** (DNS A-record query for `google.com` using resolver `10.0.0.20`)
 

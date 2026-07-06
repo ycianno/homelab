@@ -1,0 +1,89 @@
+{
+  "updatedAt": "2026-07-05T18:00:00.000Z",
+  "createdAt": "2026-07-05T18:00:00.000Z",
+  "id": "sshLoginAlerts",
+  "name": "SSH Login Alerts Router",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ssh-login-alerts",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        100,
+        200
+      ],
+      "id": "webhook-trigger-id",
+      "name": "Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst result = [];\n\nconst KNOWN_KEYS = {\n  \"AAAAC3NzaC1lZDI1NTE5AAAAIBXVID774HpPhkFFoywCNyEhmCtS38KvB73zWRw7a421\": \"Ansible Control Plane\",\n  \"AAAAC3NzaC1lZDI1NTE5AAAAINKcp4DzXr8iAYsMp/IshElBUJPgr9rXqqV5gElgTR7v\": \"Ansible Control Plane (Rotated)\",\n  \"AAAAC3NzaC1lZDI1NTE5AAAAIMkcEZ18qEIRtCwy4eTrOUOm8raI6dRPViDQS/ES2+pF\": \"Antigravity AI Agent\",\n  \"AAAAC3NzaC1lZDI1NTE5AAAAIPhwoPRShkqU4cy1On0mZajxPxKNv4ShJM8kdXQ1+MIf\": \"MacBook Pro (Default Key)\",\n  \"AAAAC3NzaC1lZDI1NTE5AAAAICG/27MedTyW4jTOnctfY2j3J9cjqrmtN4sg1QD4rUFl\": \"MacBook Pro (yzee-automation-key)\",\n  \"AAAAC3NzaC1lZDI1NTE5AAAAIIXUC0juoJbWiKrYm9H0p9WBlSEzZxvvCGY4XbdGYiIJ\": \"MacBook Pro (SSH to automation-01)\",\n  \"AAAAC3NzaC1lZDI1NTE5AAAAIAXKIx2/1WOz39JaJGLcGbTAqU4GAH/fJEGd5UmSDhCj\": \"MacBook Pro (SSH to colmado-db)\",\n  \"AAAAC3NzaC1lZDI1NTE5AAAAILgoT0/+NLB4MrK/g9ol3JMbVvGNquN/2RsS8lmkaV01\": \"MacBook Pro (SSH to proxmox)\",\n  \"AAAAC3NzaC1lZDI1NTE5AAAAIJTNTA7Z79TVV4SCuHJ7+udf6xCI0uyDb5vaCTPMZEyN\": \"MacBook Pro (SSH to security-01)\",\n  \"AAAAC3NzaC1lZDI1NTE5AAAAIIxggOpU0ZFAliDXYggUnllfa683WH5b9V7iXMvOBnJf\": \"MacBook Pro (SSH to windows-lab)\"\n};\n\nfor (const item of items) {\n  const data = item.json.body || item.json;\n  const ip = data.ip ? data.ip.trim() : \"\";\n  const server = data.server || \"Unknown Server\";\n  const user = data.user || \"Unknown User\";\n  const time = data.time || new Date().toISOString();\n  const authInfo = data.auth_info || \"\";\n  const tty = data.tty || \"\";\n\n  // Extract public key base64 string from SSH_AUTH_INFO_0\n  // format: \"publickey ssh-ed25519 AAAAC3Nza...\"\n  let keyBase64 = \"\";\n  if (authInfo.startsWith(\"publickey \")) {\n    const parts = authInfo.split(\" \");\n    if (parts.length >= 3) {\n      keyBase64 = parts[2].trim();\n    }\n  }\n\n  let clientName = \"Unknown Client\";\n  let category = \"Unknown Session\";\n  let isKnown = false;\n  let color = 15158332; // Red (Untrusted)\n\n  // Parse IP octets to detect Tailscale range (100.64.0.0/10)\n  const ipParts = ip.split('.');\n  const isTailscaleIp = ipParts.length === 4 && ipParts[0] === '100' && (parseInt(ipParts[1], 10) >= 64 && parseInt(ipParts[1], 10) <= 127);\n\n  // 1. Check if Tailscale SSH session\n  if (authInfo.startsWith(\"tailscale-ssh \")) {\n    const parts = authInfo.split(\" \");\n    const tsUser = parts[1];\n    const tsNode = parts[2] ? parts[2].replace(\".taild490e6.ts.net.\", \"\").replace(\".taild490e6.ts.net\", \"\") : \"Unknown Node\";\n    \n    isKnown = true;\n    color = 3066993; // Green (Trusted)\n    \n    if (tsUser === \"ycianno@github\" || tsUser === \"ycianno@\") {\n      clientName = \"MacBook Pro (via Tailscale SSH)\";\n      category = `Authorized Tailscale SSH login from ${tsNode}`;\n    } else if (tsUser.includes(\"automation-01\") || tsNode.includes(\"automation-01\")) {\n      clientName = \"Ansible Engine (via Tailscale SSH)\";\n      category = `System Maintenance / Playbook Execution from ${tsNode}`;\n      color = 3447003; // Blue (System)\n    } else {\n      clientName = `${tsUser} (Tailscale SSH)`;\n      category = `Tailscale SSH session from ${tsNode}`;\n    }\n  }\n  // 2. Check if traditional public key is known\n  else if (keyBase64 && KNOWN_KEYS[keyBase64]) {\n    const keyDesc = KNOWN_KEYS[keyBase64];\n    isKnown = true;\n    if (keyDesc.includes(\"Ansible\")) {\n      clientName = \"Ansible Engine (Semaphore)\";\n      category = \"System Maintenance / Playbook Execution\";\n      color = 3447003; // Blue\n    } else if (keyDesc.includes(\"Antigravity\")) {\n      clientName = \"Antigravity AI Agent (Gemini)\";\n      category = \"AI Coding & Debugging Session\";\n      color = 9807270; // Purple / Indigo\n    } else if (keyDesc.includes(\"Mac Automation\")) {\n      clientName = \"Mac Automation (Cron/Scripts)\";\n      category = \"Automated CLI / Cron Task\";\n      color = 3066993; // Green\n    } else if (keyDesc.includes(\"MacBook Pro\")) {\n      // User's key, check TTY to classify VS Code Remote vs User Terminal\n      if (tty === \"ssh\" || tty === \"none\" || tty === \"\") {\n        clientName = \"VS Code Remote SSH / Claude Agent\";\n        category = \"Editor Backend / Non-Interactive command\";\n        color = 16750848; // Orange (Authorized)\n      } else {\n        clientName = \"MacBook Pro (User)\";\n        category = \"Interactive Terminal Shell\";\n        color = 3066993; // Green (Trusted)\n      }\n    }\n  } else if (keyBase64 && keyBase64.includes(\"claude\")) {\n    // Placeholder for dedicated Claude key\n    clientName = \"Claude AI Agent\";\n    category = \"AI Coding Assistant\";\n    isKnown = true;\n    color = 16541467; // Coral/Orange-Red\n  } else {\n    // No matching key, classify by IP\n    if (ip === \"10.0.0.67\" || ip === \"127.0.0.1\") {\n      clientName = \"automation-01 (Localhost)\";\n      category = \"Internal Server Task\";\n      isKnown = true;\n      color = 3066993; // Green\n    } else if (ip === \"100.115.112.1\") {\n      clientName = \"yzees-mac-mini (Tailscale)\";\n      category = \"Remote Trusted Network Session\";\n      isKnown = true;\n      color = 3066993; // Green (Trusted)\n    } else if (isTailscaleIp) {\n      clientName = \"Tailscale VPN Client\";\n      category = \"Remote Trusted Network Session (Tailscale)\";\n      isKnown = true;\n      color = 3447003; // Blue\n    } else if (ip.startsWith(\"100.96.\")) {\n      clientName = \"Twingate VPN Client\";\n      category = \"Remote Trusted Network Session (Twingate)\";\n      isKnown = true;\n      color = 3447003; // Blue\n    } else if (ip.startsWith(\"10.0.0.\")) {\n      clientName = \"Local DHCP Client\";\n      category = \"Local Subnet Device (Unknown Key)\";\n      isKnown = false;\n      color = 16750848; // Orange\n    } else {\n      clientName = \"Unknown Remote IP\";\n      category = \"UNTRUSTED EXTERNAL IP\";\n      isKnown = false;\n      color = 15158332; // Red (Alert!)\n    }\n  }\n\n  // Construct rich embed payload for Discord\n  const embed = {\n    title: isKnown ? \"\u2139\ufe0f SSH Session: Trusted Client\" : \"\ud83d\udea8 ALERT: SSH Session: Untrusted/Unknown\",\n    color: color,\n    fields: [\n      { name: \"Server\", value: `\\`${server}\\``, inline: true },\n      { name: \"User\", value: `\\`${user}\\``, inline: true },\n      { name: \"Client IP\", value: `\\`${ip}\\``, inline: true },\n      { name: \"Detected Client\", value: `**${clientName}**`, inline: false },\n      { name: \"Session Type\", value: category, inline: true },\n      { name: \"TTY\", value: `\\`${tty || \"none\"}\\``, inline: true },\n      { name: \"Time\", value: time, inline: true }\n    ],\n    footer: { text: \"PAM Session Monitor \u2192 n8n Webhook\" },\n    timestamp: new Date().toISOString()\n  };\n\n  result.push({\n    json: {\n      server,\n      user,\n      ip,\n      time,\n      clientName,\n      category,\n      isKnown,\n      color,\n      discordPayload: {\n        username: \"SSH Alert Bot\",\n        embeds: [embed]\n      }\n    }\n  });\n}\n\nreturn result;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        300,
+        200
+      ],
+      "id": "classify-device-id",
+      "name": "Classify Device"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://discord.com/api/webhooks/YOUR_DISCORD_WEBHOOK_ID/YOUR_DISCORD_WEBHOOK_TOKEN",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.discordPayload) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        500,
+        200
+      ],
+      "id": "discord-post-id",
+      "name": "Send to Discord"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Classify Device",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Device": {
+      "main": [
+        [
+          {
+            "node": "Send to Discord",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "pinData": null,
+  "versionId": "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+  "activeVersionId": "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+  "versionCounter": 1,
+  "triggerCount": 1,
+  "tags": []
+}

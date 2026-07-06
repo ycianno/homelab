@@ -77,10 +77,10 @@
         icon: pi-hole.png
         siteMonitor: https://pihole.local.yourdomain.com/admin/
 
-    - Twingate Admin:
-        href: https://alfredohiciano13.twingate.com
-        description: Secure remote access
-        icon: twingate.png
+    - Tailscale Admin:
+        href: https://login.tailscale.com/admin/machines
+        description: Secure mesh VPN admin
+        icon: tailscale.png
 
     - Netdata automation-01:
         href: https://netdata-auto.local.yourdomain.com

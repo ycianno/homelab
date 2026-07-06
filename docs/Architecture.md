@@ -24,7 +24,6 @@ The separation is deliberate: maintenance or failure of `docker-01` should not a
 | 101 | `colmado-db` | VM | `10.0.0.35` | 2 vCPU, 8 GB RAM, 50 GB disk | Ubuntu 24.04 | Supabase development platform |
 | 109 | `security-01` | VM | `10.0.0.40` | 2 vCPU, 4 GB RAM, 60 GB disk | Ubuntu 22.04 | Wazuh and CrowdSec control services |
 | 105 | `pihole-01` | LXC | `10.0.0.20` | 512 MB RAM, 6 GB disk | Ubuntu 24.04 | DNS filtering and local records |
-| 104 | `twingate-connector` | LXC | `10.0.0.34` | 512 MB RAM, 3 GB disk | Ubuntu 24.04 | Private remote access |
 
 Memory ballooning is enabled for the two general-purpose Debian VMs, so observed guest memory may be below the configured maximum.
 
@@ -36,7 +35,7 @@ Memory ballooning is enabled for the two general-purpose Debian VMs, so observed
 | `10.0.0.1` | Default gateway and DNS path for most systems |
 | Pi-hole | Directly used by selected systems and local service records; it is not yet the network-wide resolver |
 | Nginx Proxy Manager | Internal HTTPS entry point and certificate termination for management applications |
-| Twingate | Private administrative access without directly exposing management ports |
+| Tailscale | Private administrative access without exposing management ports (mesh VPN) |
 | Cloudflare Tunnel | Selected external application ingress through `docker-01` |
 | `10.16.30.0/24` | Additional isolated Proxmox bridge; present but not yet fully documented or used as the primary service network |
 
@@ -48,7 +47,7 @@ flowchart TB
     Users["Application users"]
 
     subgraph Access["Access layer"]
-        TW["Twingate connector"]
+        TS["Tailscale VPN"]
         CF["Cloudflare Tunnel"]
         NPM["Nginx Proxy Manager"]
         PI["Pi-hole"]
@@ -78,7 +77,7 @@ flowchart TB
         CS["CrowdSec LAPI"]
     end
 
-    Admin --> TW --> NPM
+    Admin --> TS --> NPM
     Users --> CF --> NC
     PI -.->|selected DNS clients| Control
     NPM --> Control
