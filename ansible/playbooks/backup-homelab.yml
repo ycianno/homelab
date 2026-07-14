@@ -3,8 +3,8 @@
   hosts: automation
   tasks:
     - name: Run Unified Daily Backup Script
-      ansible.builtin.command:
-        cmd: /bin/bash ../../scripts/backup_server.sh
+      ansible.builtin.script:
+        cmd: ../../scripts/backup_server.sh
       register: backup_output
 
     - name: Show Backup Output Logs

@@ -1,7 +1,7 @@
 # Operations and Reliability
 
 **State:** Observed unless explicitly marked otherwise
-**Last reviewed:** 2026-06-21
+**Last reviewed:** 2026-07-14
 
 ## Source of truth and change flow
 
@@ -47,6 +47,21 @@ Backups are described by what is recoverable today, not by the existence of a sc
 | Proxmox VM/LXC backups | Nightly job configured, but target storage disabled and recent jobs failed | No usable hypervisor dumps were present at review time |
 | Restore testing | No current evidence of an end-to-end restore exercise | Recovery objectives and actual restore time are unknown |
 
+The July 14 live audit also found and repaired a non-executable Life Control Center
+database backup script. A same-day SQLite snapshot was produced successfully. This
+does not change the disaster-recovery rating because the snapshot remains on the
+same host and no restore exercise has been completed.
+
+## Repairs completed on 2026-07-14
+
+- Semaphore's on-LAN inventory now uses stable LAN addresses instead of
+  Tailscale/MagicDNS names that the container could not resolve.
+- Docker maintenance targets only hosts that actually run Docker.
+- The n8n Threat Feed workflow uses the supported `cronExpression` schedule
+  field and activates without the former timezone-alias error.
+- Hermes schedules are preserved but disabled until its private configuration
+  is installed.
+
 The current backup posture is a known engineering gap. A successful command, scheduled job, or copied archive is not considered a verified recovery capability until a restore has been tested.
 
 ## Known limitations and active work
@@ -54,6 +69,7 @@ The current backup posture is a known engineering gap. A successful command, sch
 | Priority | Gap | Planned outcome |
 | --- | --- | --- |
 | Critical | Proxmox backup target is disabled; recent scheduled jobs failed | Restore a separate backup destination, produce fresh guest dumps, and test recovery |
+| High | Hermes was scheduled without its private `config.json` and failed every two hours | Keep its cron entries disabled until the private Discord and Ollama configuration is installed and tested |
 | High | Backups share local failure domains and Mac/iCloud retention handling is incomplete | Add independent storage, fix retention verification, and document recovery procedures |
 | High | Supavisor uses a sample tenant ID and its `pgbouncer` database credential is mismatched | Configure a real tenant, synchronize the database role password, and verify session and transaction pool ports |
 | High | `security-01` did not have Proxmox autostart enabled at review time | Enable startup ordering and verify the security plane returns after host reboot |

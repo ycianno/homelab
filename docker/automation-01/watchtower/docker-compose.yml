@@ -11,7 +11,11 @@ services:
       - WATCHTOWER_CLEANUP=true
       - WATCHTOWER_SCHEDULE=0 0 8 * * *
       - WATCHTOWER_NOTIFICATIONS=shoutrrr
-      - WATCHTOWER_NOTIFICATION_URL=generic+http://10.0.0.67:5678/webhook/watchtower-alert
+      # Shoutrrr's generic+http shortcut does not accept template parameters and
+      # sends the report as a bare string with an application/json content type.
+      # n8n rejects that body with HTTP 422. Use the full generic scheme so the
+      # built-in JSON template produces {title,message} for the webhook parser.
+      - WATCHTOWER_NOTIFICATION_URL=generic://10.0.0.67:5678/webhook/watchtower-alert?template=json&disabletls=yes
       - WATCHTOWER_NOTIFICATION_REPORT=true
       - WATCHTOWER_NOTIFICATION_TITLE_TAG=automation-01
     volumes:

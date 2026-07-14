@@ -1,6 +1,6 @@
 ---
 - name: Docker Maintenance Playbook
-  hosts: linux_servers
+  hosts: docker_hosts
   gather_facts: no
   become: yes
   tasks:
