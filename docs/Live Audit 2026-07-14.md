@@ -73,6 +73,14 @@ with HTTP 422 before the workflow could parse it. The Compose definition now
 uses Shoutrrr's full generic URL plus `template=json`, which supplies the
 `title` and `message` object expected by the workflow.
 
+### Service rationalization finding
+
+Uptime Kuma 1.23.17 continuously consumed roughly 66–82% of one CPU after a
+restart despite having only 11 monitors. Its SQLite database contains about
+695,000 heartbeat rows and retains data for 180 days. Kuma remains functional,
+but it requires database/version remediation before being treated as a healthy
+long-term monitoring component.
+
 ## Critical unresolved risk
 
 The Proxmox `usb-backups` storage is disabled and no USB backup device is
