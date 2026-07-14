@@ -76,10 +76,13 @@ uses Shoutrrr's full generic URL plus `template=json`, which supplies the
 ### Service rationalization finding
 
 Uptime Kuma 1.23.17 continuously consumed roughly 66–82% of one CPU after a
-restart despite having only 11 monitors. Its SQLite database contains about
-695,000 heartbeat rows and retains data for 180 days. Kuma remains functional,
-but it requires database/version remediation before being treated as a healthy
-long-term monitoring component.
+restart despite having only 11 monitors and about 695,000 heartbeat rows. A
+checksum-verified full data backup was created, the deployment was pinned to
+the v2 major release line, and Uptime Kuma 2.4.0 completed its aggregate-table
+migration for all 11 monitors. Five post-migration samples measured 0.57–0.62%
+CPU with zero container restarts. Kuma is now a healthy long-term monitoring
+component. The preserved `Twingate` monitor currently reports `10.0.0.34` as
+unreachable and should be reconciled with the intended network inventory.
 
 ## Critical unresolved risk
 

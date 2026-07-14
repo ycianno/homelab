@@ -1,6 +1,7 @@
 services:
   uptime-kuma:
-    image: louislam/uptime-kuma:latest
+    # Track supported v2 patch releases without crossing major versions.
+    image: louislam/uptime-kuma:2
     container_name: uptime-kuma
     restart: unless-stopped
     ports:
