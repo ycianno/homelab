@@ -39,6 +39,11 @@ Repository corrections in this audit use stable LAN addresses for Semaphore,
 add a `docker_hosts` group, restrict Docker maintenance to that group, and use
 Ansible's `script` module for the backup script.
 
+Post-change validation succeeded in the live Semaphore service. The Server
+Health Check reached all four Linux hosts with no failures, and the Unified
+Homelab Backups template completed successfully, producing fresh Supabase and
+Nextcloud database dumps plus Docker/control-plane configuration archives.
+
 ### n8n
 
 - 20 workflows exist: 11 published/active and nine inactive.
