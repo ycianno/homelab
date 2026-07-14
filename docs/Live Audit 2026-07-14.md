@@ -86,10 +86,11 @@ unreachable and should be reconciled with the intended network inventory.
 
 ## Critical unresolved risk
 
-The Proxmox `usb-backups` storage is disabled and no USB backup device is
-present. The enabled 02:00 backup job fails daily, and no usable guest dump was
-found. Restoring independent backup storage and completing a test restore is
-the highest-priority remaining reliability task.
+The Proxmox `usb-backups` storage is disabled and no USB backup device is part
+of the intended design. The obsolete 02:00 job was preserved but disabled on
+July 14 so it no longer generates guaranteed failures. No usable guest dump was
+found. Building the replacement phone-backed full-guest flow and completing a
+test restore is the highest-priority remaining reliability task.
 
 Semaphore environment records contain operational credentials in retrievable
 plaintext for authenticated administrators. Credentials handled during this

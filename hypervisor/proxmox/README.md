@@ -25,10 +25,15 @@ This directory documents the virtualization host settings, VM/LXC allocations, a
 ## Backup & Storage Policies
 
 ### Hypervisor Backups
-- **Target:** External USB drive mounted at `/mnt/usb-drive/proxmox-backups/dump`.
-- **Schedule:** Automated snapshots run daily at 2:00 AM.
-- **Retention Policy:** Keep last 7 daily backups, 4 weekly backups.
-- **Verification:** Uptime Kuma monitors the backup folder mount point via directory presence checks.
+- The former `usb-backups` target has been retired because no dedicated USB
+  disk is part of the current design.
+- The old 02:00 `vzdump` job is preserved but disabled as of 2026-07-14 so it
+  does not generate guaranteed failures against nonexistent storage.
+- Application/configuration backups currently travel from the servers through
+  the Mac and iCloud to local iPhone storage. These are useful recovery
+  artifacts, but they are not full Proxmox guest archives.
+- A replacement full-guest design must account for the Mac having about 4 GiB
+  free while the guests currently occupy about 140 GiB on Proxmox.
 
 ### Virtual Machine Disk Storage
 - Standard virtual disks are allocated on the local Proxmox LVM-thin storage pool (`local-lvm`).

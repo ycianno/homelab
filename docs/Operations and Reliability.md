@@ -44,13 +44,20 @@ Backups are described by what is recoverable today, not by the existence of a sc
 | Nextcloud database, data, and HTML/config | One successful local backup set was present on `docker-01` | Stored on the same VM/storage failure domain; not sufficient as disaster recovery |
 | Supabase DB and service configurations | Included in the Mac-initiated application backup flow | Partial application-level protection; retention enumeration needs repair |
 | Docker and control-plane configurations | Included in the Mac/iCloud flow | Configuration coverage only; does not replace VM images or full application data |
-| Proxmox VM/LXC backups | Nightly job configured, but target storage disabled and recent jobs failed | No usable hypervisor dumps were present at review time |
+| Proxmox VM/LXC backups | Obsolete USB job preserved but disabled; replacement phone-backed design pending | No usable hypervisor dumps were present at review time |
 | Restore testing | No current evidence of an end-to-end restore exercise | Recovery objectives and actual restore time are unknown |
 
 The July 14 live audit also found and repaired a non-executable The Forge
 database backup script. A same-day SQLite snapshot was produced successfully. This
 does not change the disaster-recovery rating because the snapshot remains on the
 same host and no restore exercise has been completed.
+
+The Mac LaunchAgent failure was also traced to retention cleanup against
+iCloud-only file placeholders. A failed `rm` previously terminated the whole
+job after the first category. The script now continues after retention warnings,
+reports backup failures independently, and completed all five current backup
+categories in a verification run. Local iPhone copies remain outside Mac-side
+retention control and require retention inside the iOS Shortcut.
 
 ## Repairs completed on 2026-07-14
 
@@ -68,7 +75,7 @@ The current backup posture is a known engineering gap. A successful command, sch
 
 | Priority | Gap | Planned outcome |
 | --- | --- | --- |
-| Critical | Proxmox backup target is disabled; recent scheduled jobs failed | Restore a separate backup destination, produce fresh guest dumps, and test recovery |
+| Critical | No full Proxmox guest backups exist; the obsolete USB job is now disabled | Produce staggered full guest archives through the phone-backed replacement path and test recovery |
 | High | Hermes was scheduled without its private `config.json` and failed every two hours | Keep its cron entries disabled until the private Discord and Ollama configuration is installed and tested |
 | High | Backups share local failure domains and Mac/iCloud retention handling is incomplete | Add independent storage, fix retention verification, and document recovery procedures |
 | High | Supavisor uses a sample tenant ID and its `pgbouncer` database credential is mismatched | Configure a real tenant, synchronize the database role password, and verify session and transaction pool ports |
