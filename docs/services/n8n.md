@@ -66,7 +66,6 @@ The following table summarizes the workflows present in the database, matching t
 | `wBVURdTLzGiSSiwk.json` | Daily Homelab Health Report | **Active** | Daily at 8:00 AM | HTTP Request, Discord |
 | `8fW46qYRuluELXT3.json` | Zoho Weekly Recruitment Report | *Inactive* | Weekly on Thursday at 7:00 AM | Zoho Recruit API, Spreadsheet |
 | `8mZV1Je37KbYriQI.json` | Zoho Weekly Recruitment Report - v2 Financials | *Inactive* | Weekly on Thursday at 7:00 AM | Zoho API, SSH, Python/Docker |
-| `n8nBackupForgejo.json` | n8n Auto-Backup to GitHub | **Active** | Daily at 1:00 AM | SSH, Git, GitHub |
 | `EAcHLCXJJFLwCnLM.json` | Global Error Handler | **Active** | Error Trigger | Discord Webhook |
 | `uptime-kuma-remediation.json` | Semaphore Auto-Remediation | **Active** | Webhook (Uptime Kuma DOWN) | HTTP (Semaphore), Discord |
 | `disk-space-remediation.json` | Automatic Disk Space Remediation | **Active** | Hourly | SSH, HTTP (Semaphore), Discord |

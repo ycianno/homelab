@@ -11,8 +11,8 @@ The operating flow is:
 
 1. Infrastructure definitions and playbooks are maintained in GitHub.
 2. `automation-01` pulls the repository for Ansible/Semaphore execution.
-3. n8n exports active workflows, sanitizes credential-bearing fields, and commits only the sanitized JSON.
-4. Runtime changes are compared back to version-controlled definitions so drift can be identified.
+3. Runtime changes are compared back to version-controlled definitions so drift can be identified.
+4. Workflow examples are published only after deliberate review and sanitization; runtime exports never push automatically to the public repository.
 
 ## Automation
 
@@ -20,7 +20,7 @@ The operating flow is:
 | --- | --- |
 | Ansible | Updates, health checks, Docker maintenance, Wazuh/CrowdSec deployment, SSH alerts, and targeted stack operations |
 | Semaphore | Operator interface and scheduler for Ansible tasks |
-| n8n | Daily health/capacity reports, remediation hooks, workflow exports, and application/business integrations |
+| n8n | Daily health/capacity reports, remediation hooks, and application/business integrations |
 | Watchtower | Label-gated updates for selected containers; stateful services are not broadly auto-updated |
 | Terraform | Proxmox provisioning definitions are present; the repository does not claim the full current estate is reproducible from Terraform |
 
@@ -47,7 +47,7 @@ Backups are described by what is recoverable today, not by the existence of a sc
 | Proxmox VM/LXC backups | Nightly job configured, but target storage disabled and recent jobs failed | No usable hypervisor dumps were present at review time |
 | Restore testing | No current evidence of an end-to-end restore exercise | Recovery objectives and actual restore time are unknown |
 
-The July 14 live audit also found and repaired a non-executable Life Control Center
+The July 14 live audit also found and repaired a non-executable The Forge
 database backup script. A same-day SQLite snapshot was produced successfully. This
 does not change the disaster-recovery rating because the snapshot remains on the
 same host and no restore exercise has been completed.

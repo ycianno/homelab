@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Daily consistent backup of the Life Control Center SQLite database.
+# Daily consistent backup of The Forge SQLite database (originally Life Control Center).
 # All work runs INSIDE the container (which owns the root-mounted data volume),
 # using better-sqlite3's online backup API so the snapshot is consistent even
 # while the app writes. Snapshots land in data/backups, swept up by the

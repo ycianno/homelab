@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Hermes — Game Master & Discord Agent for the Life Control Center
+Hermes — Game Master & Discord Agent for The Forge (originally Life Control Center)
 
-Reads the Life Control Center SQLite database, mirrors the app's XP engine to
+Reads The Forge SQLite database, mirrors the app's XP engine to
 know the operator's level / rank / attributes / streak / badges, detects
 milestones since the last run, and posts a rich, game-aware Discord embed
 written by a local Ollama model.

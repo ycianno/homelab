@@ -11,9 +11,9 @@ Eleven containers were running at the latest review.
 
 | Service | Function | Operating role |
 | --- | --- | --- |
-| Life Control Center | Custom personal operations application | Internal application |
+| The Forge (originally Life Control Center) | Custom personal operations application | Internal application |
 | Gotenberg | Document rendering API | Supports PDF/document generation workflows |
-| n8n 2.22.5 | Workflow engine | Scheduled reports, remediation, integrations, and sanitized Git exports |
+| n8n 2.22.5 | Workflow engine | Scheduled reports, remediation, and integrations |
 | Semaphore | Ansible web control plane | Runs version-controlled playbooks against the server fleet |
 | Nginx Proxy Manager | Reverse proxy and TLS termination | Internal HTTPS entry point |
 | Uptime Kuma | Availability monitoring | Checks eleven service endpoints at the latest review |
@@ -83,7 +83,7 @@ The latest Wazuh review showed active agents for Proxmox, `automation-01`, `dock
 | --- | --- |
 | [`docker/`](../docker) | Compose definitions grouped by host |
 | [`ansible/`](../ansible) | Inventory and operational playbooks |
-| [`n8n-workflows/`](../n8n-workflows) | Sanitized active and remediation workflow exports |
+| [`n8n-workflows/`](../n8n-workflows) | Curated, sanitized workflow examples; not a runtime backup |
 | [`security/`](../security) | Wazuh, CrowdSec, and SSH-alert implementation notes |
 | [`hypervisor/`](../hypervisor) | Proxmox and Terraform configuration |
 | [`scripts/`](../scripts) | Backup, export, sanitization, and maintenance utilities |

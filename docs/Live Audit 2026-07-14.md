@@ -46,19 +46,20 @@ Nextcloud database dumps plus Docker/control-plane configuration archives.
 
 ### n8n
 
-- 20 workflows exist: 11 published/active and nine inactive.
+- After cleanup, 14 workflows remain: 10 published/active and four inactive.
 - The published Threat Feed workflow cannot activate because its old Schedule
   Trigger uses `field: cron`; n8n 2.22.5 expects `field: cronExpression`.
-- The five inactive per-service infrastructure reports were superseded by the
-  consolidated daily report and are safe legacy-removal candidates after an
-  export is retained.
-- The inactive v1 Zoho weekly report is superseded by the active v3 workflow.
+- Five inactive per-service infrastructure reports superseded by the consolidated
+  daily report were deleted after a verified SQLite backup.
+- The inactive v1 Zoho weekly report was deleted because v3 is active.
+- The scheduled n8n-to-public-GitHub export was unpublished. Public workflow
+  examples are now curated deliberately instead of serving as runtime backups.
 - The inactive Local AI template and BudgetNote Twitter workflow were not
   classified as legacy because they may still be intentional drafts.
 
 ### Host cron
 
-- The Life Control Center backup script lacked execute permission. It was
+- The Forge backup script lacked execute permission. It was
   repaired and successfully wrote `db-2026-07-14.sqlite`.
 - Hermes had no private `config.json`, causing repeated failures. Its two cron
   entries were preserved but disabled until configuration is supplied.

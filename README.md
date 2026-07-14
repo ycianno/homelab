@@ -56,7 +56,7 @@ The primary network is `10.0.0.0/24`. Internal HTTP services are consolidated be
 ## Platforms and applications
 
 - **Automation and operations:** n8n, Ansible, Semaphore, Watchtower, and custom shell/Python automation.
-- **Application platform:** Nextcloud, Supabase, Life Control Center, Gotenberg, and supporting PostgreSQL/Redis services.
+- **Application platform:** Nextcloud, Supabase, The Forge (originally Life Control Center), Gotenberg, and supporting PostgreSQL/Redis services.
 - **Management:** Homepage, Portainer, Dozzle, and Nginx Proxy Manager.
 - **Observability:** Uptime Kuma and Netdata, supplemented by n8n health and capacity reports.
 - **Security:** Wazuh agents and SIEM components, CrowdSec agents/LAPI/firewall bouncers, host firewalls, and SSH event notifications.
@@ -68,7 +68,7 @@ See the [service catalog](docs/Service%20Catalog.md) for workload placement and 
 
 - The public GitHub repository is the source of truth for sanitized infrastructure code and public documentation.
 - Semaphore executes the version-controlled Ansible playbooks used for patching, health checks, Docker maintenance, and security-agent management.
-- n8n runs scheduled reports, remediation workflows, workflow exports, and business-process automations.
+- n8n runs scheduled reports, remediation workflows, and business-process automations.
 - Uptime Kuma checks service availability; Netdata provides host and container metrics; Wazuh and CrowdSec cover security events and enforcement.
 - Stateful services are intentionally excluded from broad unattended container upgrades.
 
@@ -87,6 +87,6 @@ Start with the [documentation map](docs/README.md):
 
 ## Public/private boundary
 
-Public content includes sanitized Compose definitions, playbooks, scripts, workflow exports, topology, and service documentation. Runtime credentials, tokens, certificates, private domains, and unredacted operational notes remain local. The export pipeline redacts n8n secrets before committing them.
+Public content is curated before publication and may include sanitized Compose definitions, playbooks, selected workflow examples, topology, and service documentation. Runtime credentials, tokens, certificates, private domains, full workflow backups, and unredacted operational notes remain private. Nothing should push runtime exports directly to the public repository.
 
 The repository shows how the system is designed and operated. It deliberately does not promise that another environment can be reproduced by cloning it.
